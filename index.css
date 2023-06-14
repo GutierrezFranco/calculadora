@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 body {
   font-family: Arial, sans-serif;
   text-align: center;
@@ -27,3 +28,34 @@ button {
   margin-top: 20px;
   font-weight: bold;
 }
+=======
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+h1 {
+  margin-top: 50px;
+}
+
+.calculator {
+  margin-top: 30px;
+}
+
+input, button {
+  margin: 5px;
+  padding: 5px;
+}
+
+button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+#output {
+  margin-top: 20px;
+  font-weight: bold;
+}
+>>>>>>> a85bd791d62d3b77824facbbfc009da2d0af33aa
