@@ -60,3 +60,27 @@ export function instantAt(date: LocalDate, hour: number, timezone: string): Inst
   const shown = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"));
   return new Date(guess - (shown - guess)).toISOString();
 }
+
+/** Mes YYYY-MM desplazado n meses. */
+export function shiftMonth(month: string, n: number): string {
+  const d = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1 + n, 1));
+  return d.toISOString().slice(0, 7);
+}
+
+/** Período de un mes; si es el mes en curso, termina hoy. */
+export function monthPeriod(month: string, today: LocalDate): Period {
+  const from = `${month}-01`;
+  const end = addDays(`${shiftMonth(month, 1)}-01`, -1);
+  return { from, to: end < today ? end : today };
+}
+
+/** Último día del mes. */
+export function monthEnd(month: string): LocalDate {
+  return addDays(`${shiftMonth(month, 1)}-01`, -1);
+}
+
+export const MONTH_NAMES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+export function monthName(month: string): string {
+  return MONTH_NAMES[Number(month.slice(5, 7)) - 1];
+}

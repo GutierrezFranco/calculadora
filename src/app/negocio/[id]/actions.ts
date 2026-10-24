@@ -4,12 +4,11 @@ import { revalidatePath } from "next/cache";
 import { instantAt, localDate } from "@/domain/dates";
 import { getBusiness } from "@/lib/data";
 import { parseAmount } from "@/lib/format";
+import { resolveFunnel } from "@/lib/funnel-choice";
 import { normalizePhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 
 export type FormState = { ok: boolean; message: string } | null;
-
-const LEAD_SOURCES = ["organico", "meta_ads", "prospeccion", "referido", "directo", "desconocido", "otro"];
 
 async function loadBusiness(businessId: string) {
   const supabase = await createClient();
@@ -57,8 +56,12 @@ export async function quickSale(businessId: string, _prev: FormState, formData: 
   const cost = parseAmount(formData.get("cost"));
   const currency = String(formData.get("currency") ?? business.currency);
   if (currency !== business.currency && currency !== "USD") return { ok: false, message: "Moneda inválida" };
-  const source = String(formData.get("source") ?? "desconocido");
-  if (!LEAD_SOURCES.includes(source)) return { ok: false, message: "Origen inválido" };
+  let funnel: string | null;
+  try {
+    funnel = await resolveFunnel(supabase, businessId, formData.get("funnel"));
+  } catch (e) {
+    return { ok: false, message: (e as Error).message };
+  }
 
   const rawPhone = String(formData.get("phone") ?? "");
   const phone = normalizePhone(rawPhone, business.timezone);
@@ -73,8 +76,10 @@ export async function quickSale(businessId: string, _prev: FormState, formData: 
     p_contact_name: String(formData.get("contactName") ?? "").trim() || null,
     p_phone: phone,
     p_direct_cost: cost,
-    p_source: source,
+    p_source: "desconocido",
     p_won_at: whenFor(String(formData.get("date") ?? ""), business.timezone),
+    p_funnel: funnel,
+    p_direct: formData.get("fromInquiry") !== "on",
   });
   if (error) return { ok: false, message: error.message };
   revalidatePath(`/negocio/${businessId}`, "layout");

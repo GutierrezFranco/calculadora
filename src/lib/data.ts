@@ -5,6 +5,10 @@ import type { Thresholds } from "@/domain/traffic-light";
 import type {
   Business,
   BusinessData,
+  DataChannel,
+  Funnel,
+  FunnelActivity,
+  FunnelStepDef,
   InquiryTally,
   Opportunity,
   Payment,
@@ -25,6 +29,7 @@ export interface BusinessRow {
   semaforo_verde: number;
   semaforo_amarillo: number;
   muestra_minima: number;
+  program_start: string | null;
 }
 
 export function toBusiness(row: BusinessRow): Business {
@@ -61,9 +66,15 @@ const rate = (value: number | string | null) => (value === null ? null : Number(
 /** Todos los registros comerciales de un negocio, en el formato del dominio. */
 export async function loadBusinessData(supabase: SupabaseClient, business: BusinessRow): Promise<BusinessData> {
   const id = business.id;
-  const [opportunities, sales, payments, adjustments, tallies, quotes] = await Promise.all([
-    fetchAll<{ id: string; contact_id: string; created_at: string; stage: Opportunity["stage"]; source: Opportunity["source"]; lost_at: string | null }>(
-      supabase, "opportunities", "id, contact_id, created_at, stage, source, lost_at", id),
+  type OppRow = {
+    id: string; contact_id: string; created_at: string; stage: Opportunity["stage"]; source: Opportunity["source"]; lost_at: string | null;
+    funnel_id: string | null; attribution_confidence: Opportunity["attributionConfidence"]; entry_kind: Opportunity["entryKind"];
+    lost_category: Opportunity["lostCategory"]; data_imports: { channel: DataChannel } | null;
+  };
+  const [opportunities, sales, payments, adjustments, tallies, quotes, funnels] = await Promise.all([
+    fetchAll<OppRow>(
+      supabase, "opportunities",
+      "id, contact_id, created_at, stage, source, lost_at, funnel_id, attribution_confidence, entry_kind, lost_category, data_imports(channel)", id),
     fetchAll<{ id: string; opportunity_id: string; contact_id: string; amount: number; currency: string; direct_cost: number | null; variable_costs: number | null; won_at: string; status: Sale["status"]; usd_rate: string | null }>(
       supabase, "sales", "id, opportunity_id, contact_id, amount, currency, direct_cost, variable_costs, won_at, status, usd_rate", id),
     fetchAll<{ id: string; opportunity_id: string; sale_id: string | null; amount: number; currency: string; kind: Payment["kind"]; paid_at: string; refunds_payment_id: string | null; usd_rate: string | null }>(
@@ -73,13 +84,15 @@ export async function loadBusinessData(supabase: SupabaseClient, business: Busin
     fetchAll<{ id: string; date: string; count: number; method: InquiryTally["method"] }>(
       supabase, "inquiry_tallies", "id, date, count, method", id),
     fetchAll<{ opportunity_id: string }>(supabase, "quotes", "opportunity_id", id),
+    loadFunnels(supabase, id),
   ]);
 
   return {
     business: toBusiness(business),
     opportunities: opportunities.map((o) => ({
       id: o.id, businessId: id, contactId: o.contact_id, createdAt: o.created_at,
-      stage: o.stage, source: o.source, lostAt: o.lost_at,
+      stage: o.stage, source: o.source, lostAt: o.lost_at, funnelId: o.funnel_id, attributionConfidence: o.attribution_confidence,
+      entryKind: o.entry_kind, lostCategory: o.lost_category, channel: o.data_imports?.channel ?? "manual",
     })),
     sales: sales.map((s) => ({
       id: s.id, businessId: id, opportunityId: s.opportunity_id, contactId: s.contact_id,
@@ -99,7 +112,60 @@ export async function loadBusinessData(supabase: SupabaseClient, business: Busin
     })),
     tallies: tallies.map((t) => ({ id: t.id, businessId: id, date: t.date, count: t.count, method: t.method })),
     quotedOpportunityIds: [...new Set(quotes.map((q) => q.opportunity_id))],
+    funnels: funnels.funnels,
+    activities: funnels.activities,
   };
+}
+
+/** Embudos del negocio con sus versiones y su actividad. */
+export async function loadFunnels(supabase: SupabaseClient, businessId: string): Promise<{ funnels: Funnel[]; activities: FunnelActivity[] }> {
+  const [funnels, versions, activities] = await Promise.all([
+    fetchAll<{ id: string; name: string; template_key: string | null; channel: Funnel["channel"]; status: Funnel["status"]; allows_direct_sales: boolean; created_at: string }>(
+      supabase, "funnels", "id, name, template_key, channel, status, allows_direct_sales, created_at", businessId),
+    fetchAll<{ id: string; funnel_id: string; version: number; valid_from: string; steps: FunnelStepDef[]; notes: string | null }>(
+      supabase, "funnel_versions", "id, funnel_id, version, valid_from, steps, notes", businessId),
+    fetchAll<{ id: string; funnel_id: string; version_id: string; occurred_on: string; period_end: string | null; label: string | null; step_values: Record<string, number>; quality: FunnelActivity["quality"]; channel: DataChannel }>(
+      supabase, "funnel_activities", "id, funnel_id, version_id, occurred_on, period_end, label, step_values, quality, channel", businessId),
+  ]);
+  return {
+    funnels: funnels
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((f) => ({
+        id: f.id, name: f.name, templateKey: f.template_key, channel: f.channel, status: f.status, allowsDirectSales: f.allows_direct_sales,
+        versions: versions
+          .filter((v) => v.funnel_id === f.id)
+          .sort((a, b) => a.version - b.version)
+          .map((v) => ({ id: v.id, version: v.version, validFrom: v.valid_from, steps: v.steps, notes: v.notes })),
+      })),
+    activities: activities.map((a) => ({
+      id: a.id, funnelId: a.funnel_id, versionId: a.version_id, occurredOn: a.occurred_on, periodEnd: a.period_end,
+      label: a.label, values: a.step_values, quality: a.quality, channel: a.channel,
+    })),
+  };
+}
+
+export interface FunnelTemplate {
+  key: string;
+  name: string;
+  description: string;
+  steps: FunnelStepDef[];
+  allowsDirectSales: boolean;
+}
+
+export async function loadTemplates(supabase: SupabaseClient): Promise<FunnelTemplate[]> {
+  const { data, error } = await supabase.from("funnel_templates").select("key, name, description, steps, allows_direct_sales").order("sort");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((t) => ({ key: t.key, name: t.name, description: t.description, steps: t.steps, allowsDirectSales: t.allows_direct_sales }));
+}
+
+/** Filas de importación con coincidencias dudosas sin resolver. */
+export async function countPendingReview(supabase: SupabaseClient, businessId: string): Promise<number> {
+  const { count } = await supabase
+    .from("ingestion_rows")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId)
+    .eq("status", "dudosa");
+  return count ?? 0;
 }
 
 export async function getBusiness(supabase: SupabaseClient, id: string): Promise<BusinessRow | null> {

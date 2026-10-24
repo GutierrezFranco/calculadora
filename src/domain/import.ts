@@ -5,7 +5,7 @@ import { instantAt } from "./dates";
 import { parseAmountText } from "./money";
 import type { CurrencyCode, Instant, LocalDate } from "./types";
 
-export type ImportKind = "ventas" | "consultas" | "prospectos";
+export type ImportKind = "ventas" | "consultas" | "prospectos" | "oportunidades";
 
 export type Cell = string | number | boolean | Date | null | undefined;
 
@@ -19,6 +19,14 @@ export const IMPORT_FIELDS = {
     { id: "cliente", label: "Cliente", required: false },
     { id: "telefono", label: "Teléfono", required: false },
     { id: "moneda", label: "Moneda", required: false },
+    { id: "id", label: "N° de orden o ID (evita duplicados)", required: false },
+  ],
+  oportunidades: [
+    { id: "fecha", label: "Fecha de la consulta", required: true },
+    { id: "necesidad", label: "Qué necesita", required: false },
+    { id: "cliente", label: "Cliente", required: false },
+    { id: "telefono", label: "Teléfono", required: false },
+    { id: "id", label: "N° de orden o ID (evita duplicados)", required: false },
   ],
   consultas: [
     { id: "fecha", label: "Fecha", required: true },
@@ -42,11 +50,13 @@ export type Mapping = Partial<Record<FieldId, number | null>>;
 // Orden importa: "monto cobrado" tiene que caer en cobrado antes que en monto.
 const KEYWORDS: [FieldId, string[]][] = [
   ["fecha", ["fecha", "dia", "date", "fec"]],
+  ["id", ["n° de orden", "nro", "numero de orden", "orden", "ticket", "comprobante"]],
   ["cobrado", ["cobrado", "pagado", "abonado", "cobro", "pago"]],
   ["costo", ["costo", "coste", "repuesto", "insumo"]],
   ["monto", ["monto", "total", "importe", "precio", "venta", "valor", "facturado"]],
   ["telefono", ["telefono", "tel", "celular", "whatsapp", "cel", "movil"]],
   ["cliente", ["cliente", "nombre", "contacto"]],
+  ["necesidad", ["necesidad", "consulta", "motivo", "pedido", "falla", "equipo", "modelo", "detalle"]],
   ["descripcion", ["descripcion", "detalle", "trabajo", "reparacion", "servicio", "producto", "concepto", "equipo", "modelo", "articulo"]],
   ["moneda", ["moneda", "divisa", "currency"]],
   ["empresa", ["empresa", "negocio", "local", "comercio", "razon social", "taller"]],
@@ -128,6 +138,10 @@ export function parseCurrencyCell(cell: Cell, local: CurrencyCode): CurrencyCode
 }
 
 export interface SaleImportRow {
+  /** Número de fila en la planilla, para rastrear cada dato hasta su origen. */
+  row?: number;
+  /** Id de la fila en el sistema de origen (columna de N° de orden), si hay. */
+  externalId?: string | null;
   fecha: Instant;
   monto: number;
   cobrado: number | null;
@@ -194,6 +208,8 @@ export function parseSales(data: Cell[][], mapping: Mapping, options: ParseOptio
     const phone = rawPhone ? options.normalizePhone(rawPhone) : null;
 
     result.rows.push({
+      row: rowNumber,
+      externalId: text(at(row, "id")),
       fecha: instantAt(date, 12, options.timezone),
       monto: amount,
       cobrado: paid,
@@ -266,4 +282,67 @@ export function parseProspects(
     result.rows.push(prospect);
   });
   return result;
+}
+
+export interface OpportunityImportRow {
+  row?: number;
+  externalId: string | null;
+  fecha: Instant;
+  necesidad: string | null;
+  cliente: string | null;
+  telefono: string | null;
+}
+
+/** Consultas individuales (por ejemplo, desde el CRM o el sistema de turnos). */
+export function parseOpportunities(
+  data: Cell[][],
+  mapping: Mapping,
+  options: ParseOptions,
+  firstRowNumber = 2,
+): ParseResult<OpportunityImportRow> {
+  const result: ParseResult<OpportunityImportRow> = { rows: [], errors: [], skipped: 0 };
+  const at = (row: Cell[], field: FieldId) => (mapping[field] === undefined || mapping[field] === null ? null : row[mapping[field]!]);
+  data.forEach((row, i) => {
+    const rowNumber = firstRowNumber + i;
+    if (row.every((c) => text(c) === null && !(c instanceof Date))) {
+      result.skipped++;
+      return;
+    }
+    const date = parseDateCell(at(row, "fecha"));
+    if (!date) return result.errors.push({ row: rowNumber, message: "fecha ilegible" });
+    if (date > options.today) return result.errors.push({ row: rowNumber, message: "fecha futura" });
+    const rawPhone = text(at(row, "telefono"));
+    const phone = rawPhone ? options.normalizePhone(rawPhone) : null;
+    if (rawPhone && !phone) return result.errors.push({ row: rowNumber, message: "teléfono inválido" });
+    const need = text(at(row, "necesidad"));
+    const client = text(at(row, "cliente"));
+    if (!need && !client && !phone) return result.errors.push({ row: rowNumber, message: "sin necesidad, cliente ni teléfono" });
+    result.rows.push({
+      row: rowNumber,
+      externalId: text(at(row, "id")),
+      fecha: instantAt(date, 12, options.timezone),
+      necesidad: need,
+      cliente: client,
+      telefono: phone,
+    });
+  });
+  return result;
+}
+
+/** Convierte el link de una planilla de Google en el link de descarga CSV de esa hoja. null si no es un link válido. */
+export function googleSheetCsvUrl(link: string): { url: string; sourceSystem: string } | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(link.trim());
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:" || parsed.hostname !== "docs.google.com") return null;
+  const m = parsed.pathname.match(/^\/spreadsheets\/d\/([a-zA-Z0-9_-]{20,})/);
+  if (!m) return null;
+  const gid = (parsed.hash.match(/gid=(\d+)/) ?? parsed.search.match(/gid=(\d+)/))?.[1] ?? "0";
+  return {
+    url: `https://docs.google.com/spreadsheets/d/${m[1]}/export?format=csv&gid=${gid}`,
+    sourceSystem: `sheets:${m[1]}:${gid}`,
+  };
 }

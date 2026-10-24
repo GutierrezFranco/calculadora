@@ -1,8 +1,9 @@
 import { ActionForm } from "@/components/action-form";
 import { AppHeader } from "@/components/app-header";
-import { LEAD_SOURCE_OPTIONS } from "@/components/options";
+import { FunnelSelect } from "@/components/funnel-select";
 import { addDays, localDate } from "@/domain/dates";
 import { getBusinessForUser } from "@/lib/business-access";
+import { funnelOptions } from "@/lib/funnel-choice";
 import { quickSale, saveTally } from "../actions";
 
 
@@ -11,6 +12,7 @@ export default async function LoadPage({ params }: { params: Promise<{ id: strin
   const { user, business, supabase } = await getBusinessForUser(id, "cargar");
   const today = localDate(new Date().toISOString(), business.timezone);
 
+  const options = await funnelOptions(supabase, id);
   const { data: recent } = await supabase
     .from("inquiry_tallies")
     .select("date, count, method")
@@ -56,7 +58,7 @@ export default async function LoadPage({ params }: { params: Promise<{ id: strin
         <section className="rounded-lg border border-neutral-200 p-4 sm:p-6 dark:border-neutral-800">
           <h1 className="mb-1 text-lg font-semibold">Venta rápida</h1>
           <p className="mb-4 text-sm text-neutral-500">
-            Para ventas de mostrador o trabajos ya cerrados. Queda como venta ganada con lo que te pagaron.
+            Para ventas de mostrador, en un live o trabajos ya cerrados. Queda como venta ganada con lo que te pagaron.
           </p>
           <ActionForm action={quickSale.bind(null, id)} submitLabel="Registrar venta" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm sm:col-span-2">
@@ -90,19 +92,19 @@ export default async function LoadPage({ params }: { params: Promise<{ id: strin
               Teléfono
               <input name="phone" type="tel" placeholder="Opcional" className="input" />
             </label>
-            <label className="flex flex-col gap-1 text-sm">
-              ¿Cómo llegó?
-              <select name="source" defaultValue="desconocido" className="input">
-                {LEAD_SOURCE_OPTIONS.map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <FunnelSelect options={options} />
             <label className="flex flex-col gap-1 text-sm">
               Fecha
               <input name="date" type="date" defaultValue={today} max={today} className="input" />
+            </label>
+            <label className="flex items-start gap-2 text-sm sm:col-span-2">
+              <input name="fromInquiry" type="checkbox" className="mt-1" />
+              <span>
+                Vino de una consulta que no cargué
+                <span className="block text-xs text-muted">
+                  Si no la marcás es una venta directa: suma facturación pero no consultas ni tasa de cierre.
+                </span>
+              </span>
             </label>
           </ActionForm>
         </section>

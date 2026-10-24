@@ -952,6 +952,7 @@ begin
   end if;
 
   delete from public.external_refs where import_id = p_import;
+  update public.ingestion_rows set status = 'descartada' where import_id = p_import and status in ('dudosa', 'nueva');
   update public.data_imports set undone_at = now(), undone_by = auth.uid(), status = 'deshecha' where id = p_import;
   return n;
 end;

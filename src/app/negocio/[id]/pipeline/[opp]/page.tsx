@@ -3,16 +3,21 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { ActionForm } from "@/components/action-form";
 import { AppHeader } from "@/components/app-header";
-import { LEAD_SOURCE_OPTIONS, PAYMENT_KIND_LABELS } from "@/components/options";
+import { FunnelSelect } from "@/components/funnel-select";
+import { PAYMENT_KIND_LABELS } from "@/components/options";
 import { localDate } from "@/domain/dates";
 import { convert } from "@/domain/money";
 import { STAGES, isWonStage } from "@/domain/pipeline";
 import { getBusinessForUser } from "@/lib/business-access";
 import { formatDateTime, formatMoney } from "@/lib/format";
+import { funnelOptions } from "@/lib/funnel-choice";
 import { loadOpportunity } from "@/lib/pipeline-data";
 import {
   addPayment,
   addQuote,
+  addTouchpoint,
+  assignFunnel,
+  cancelJob,
   loseOpportunity,
   moveOpportunity,
   reopenOpportunity,
@@ -21,6 +26,15 @@ import {
   updateFollowUp,
   winOpportunity,
 } from "../actions";
+
+const CONFIDENCE_LABELS: Record<string, string> = { confirmada: "confirmado", declarada: "declarado", inferida: "inferido" };
+const LOST_LABELS: Record<string, string> = {
+  precio: "precio",
+  sin_respuesta: "dejó de responder",
+  eligio_otro: "eligió a otro",
+  no_reparable: "no tenía arreglo",
+  otro: "otro",
+};
 
 const OPEN_STAGES = STAGES.filter((s) => ["nueva_consulta", "presupuestado", "en_seguimiento", "senado"].includes(s.id));
 
@@ -50,7 +64,7 @@ function CurrencySelect({ local }: { local: string }) {
 export default async function OpportunityPage({ params }: { params: Promise<{ id: string; opp: string }> }) {
   const { id, opp: oppId } = await params;
   const { user, business, supabase } = await getBusinessForUser(id, "oportunidad");
-  const opp = await loadOpportunity(supabase, oppId);
+  const [opp, options] = await Promise.all([loadOpportunity(supabase, oppId), funnelOptions(supabase, id)]);
   if (!opp) notFound();
 
   const tz = business.timezone;
@@ -93,9 +107,17 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
             )}
           </p>
           <p className="text-xs text-neutral-500">
-            Consulta del {formatDateTime(opp.createdAt, tz)} · {LEAD_SOURCE_OPTIONS.find(([v]) => v === opp.source)?.[1]}
+            {opp.entryKind === "venta_directa" ? "Venta directa (sin consulta previa)" : "Consulta"} del {formatDateTime(opp.createdAt, tz)} ·{" "}
+            {opp.funnelName ? `${opp.funnelName} (${CONFIDENCE_LABELS[opp.attributionConfidence ?? "declarada"]})` : "Sin atribuir"}
+            {opp.touchpoints.length > 0 && ` · también: ${opp.touchpoints.map((t) => t.funnelName).join(", ")}`}
           </p>
-          {opp.stage === "perdido" && opp.lostReason && <p className="mt-1 text-sm text-red-700 dark:text-red-400">Motivo: {opp.lostReason}</p>}
+          {opp.stage === "perdido" && opp.lostReason && (
+            <p className={`mt-1 text-sm ${opp.lostCategory === "cancelacion_tecnica" ? "text-warn" : "text-bad"}`}>
+              Motivo: {opp.lostReason}
+              {opp.lostCategory && opp.lostCategory !== "cancelacion_tecnica" && ` (${LOST_LABELS[opp.lostCategory]})`}
+              {opp.lostCategory === "cancelacion_tecnica" && " · no cuenta como pérdida comercial"}
+            </p>
+          )}
         </header>
 
         <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -188,7 +210,15 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
               <Panel title="Perdido" tone="danger">
                 <p className="mb-3 text-xs text-neutral-500">&ldquo;Lo voy a pensar&rdquo; no es perdido: dejala en seguimiento.</p>
                 <ActionForm action={bind(loseOpportunity)} submitLabel="Marcar perdida" className="grid grid-cols-1 gap-3">
-                  <input name="reason" placeholder="Motivo (precio, no respondió…)" className="input" />
+                  <select name="category" defaultValue="" className="input" aria-label="Categoría">
+                    <option value="">¿Por qué se perdió?</option>
+                    {Object.entries(LOST_LABELS).map(([v, l]) => (
+                      <option key={v} value={v}>
+                        {l[0].toUpperCase() + l.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                  <input name="reason" placeholder="Detalle (opcional)" className="input" />
                   {opp.payments.some((p) => p.kind === "sena") && (
                     <label className="flex items-center gap-2 text-sm">
                       <input name="refund" type="checkbox" defaultChecked={business.deposits_refundable} /> Devolver la seña
@@ -241,6 +271,22 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
                 </ActionForm>
               </Panel>
 
+              <Panel title="No se pudo hacer el trabajo" tone="danger">
+                <p className="mb-3 text-xs text-neutral-500">
+                  Cancelación técnica: no llegó el repuesto, el equipo no tenía arreglo… Se revierte la venta sin contarla como pérdida
+                  por precio o seguimiento.
+                </p>
+                <ActionForm action={cancelJob.bind(null, id, oppId, sale.id)} submitLabel="Registrar cancelación técnica" className="grid grid-cols-1 gap-3">
+                  <input name="reason" required placeholder="Qué pasó" className="input" />
+                  <label className="flex items-center gap-2 text-sm">
+                    <input name="refund" type="checkbox" defaultChecked /> Devolver lo cobrado
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input name="confirm" type="checkbox" /> Confirmo que el trabajo no se pudo hacer
+                  </label>
+                </ActionForm>
+              </Panel>
+
               <Panel title="Revertir venta" tone="danger">
                 <p className="mb-3 text-xs text-neutral-500">Para anulaciones o devoluciones. La venta queda en el historial como revertida.</p>
                 <ActionForm action={reverseSale.bind(null, id, oppId, sale.id)} submitLabel="Revertir" className="grid grid-cols-1 gap-3">
@@ -264,6 +310,43 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
               </ActionForm>
             </Panel>
           )}
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Panel title="Embudo de origen">
+            <ActionForm action={bind(assignFunnel)} submitLabel="Guardar origen" className="grid grid-cols-1 gap-3">
+              <FunnelSelect options={options} label="Embudo principal" defaultValue={opp.funnelId ?? ""} />
+              <label className="flex flex-col gap-1 text-sm">
+                ¿Qué tan seguro es?
+                <select name="confidence" defaultValue={opp.attributionConfidence ?? "declarada"} className="input">
+                  <option value="confirmada">Confirmado (código, link o dato del sistema)</option>
+                  <option value="declarada">Lo dijo el cliente o lo elegí yo</option>
+                  <option value="inferida">Lo supongo</option>
+                </select>
+              </label>
+              <input name="evidence" maxLength={300} defaultValue={opp.evidence ?? ""} placeholder="Cómo lo sabés (opcional)" className="input" />
+            </ActionForm>
+          </Panel>
+          <Panel title="Otros puntos de contacto">
+            <p className="mb-3 text-xs text-neutral-500">
+              Si también lo influyó otra estrategia (vio un reel, lo recomendó alguien). Se muestra como influencia: no suma clientes ni
+              facturación a ese embudo.
+            </p>
+            {opp.touchpoints.length > 0 && (
+              <ul className="mb-3 text-sm">
+                {opp.touchpoints.map((t) => (
+                  <li key={t.id}>
+                    {t.funnelName}
+                    {t.evidence && <span className="text-neutral-500"> · {t.evidence}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <ActionForm action={bind(addTouchpoint)} submitLabel="Agregar" className="grid grid-cols-1 gap-3">
+              <FunnelSelect options={options.filter((o) => o.value !== opp.funnelId)} label="Embudo" />
+              <input name="evidence" maxLength={300} placeholder="Detalle (opcional)" className="input" />
+            </ActionForm>
+          </Panel>
         </div>
 
         <section className="mt-8">
