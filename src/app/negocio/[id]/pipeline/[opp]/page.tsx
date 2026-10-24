@@ -184,7 +184,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
               </Panel>
 
               <Panel title="Mover de etapa">
-                <ActionForm action={bind(moveOpportunity)} submitLabel="Mover" className="grid grid-cols-1 gap-3">
+                <ActionForm action={bind(moveOpportunity)} submitLabel="Mover" className="flex flex-col gap-3">
                   <select name="stage" defaultValue={opp.stage} className="input">
                     {OPEN_STAGES.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -196,7 +196,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
               </Panel>
 
               <Panel title="Próximo seguimiento">
-                <ActionForm action={bind(updateFollowUp)} submitLabel="Guardar" className="grid grid-cols-1 gap-3">
+                <ActionForm action={bind(updateFollowUp)} submitLabel="Guardar" className="flex flex-col gap-3">
                   <input
                     name="followUp"
                     type="date"
@@ -209,7 +209,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
 
               <Panel title="Perdido" tone="danger">
                 <p className="mb-3 text-xs text-neutral-500">&ldquo;Lo voy a pensar&rdquo; no es perdido: dejala en seguimiento.</p>
-                <ActionForm action={bind(loseOpportunity)} submitLabel="Marcar perdida" className="grid grid-cols-1 gap-3">
+                <ActionForm action={bind(loseOpportunity)} submitLabel="Marcar perdida" className="flex flex-col gap-3">
                   <select name="category" defaultValue="" className="input" aria-label="Categoría">
                     <option value="">¿Por qué se perdió?</option>
                     {Object.entries(LOST_LABELS).map(([v, l]) => (
@@ -266,7 +266,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
                 <p className="mb-3 text-xs text-neutral-500">
                   {sale.directCost === null ? "Sin cargar: la contribución de esta venta queda Sin datos." : `Cargado: ${formatMoney({ [sale.currency]: sale.directCost })}`}
                 </p>
-                <ActionForm action={updateCost.bind(null, id, oppId, sale.id)} submitLabel="Guardar costo" className="grid grid-cols-1 gap-3">
+                <ActionForm action={updateCost.bind(null, id, oppId, sale.id)} submitLabel="Guardar costo" className="flex flex-col gap-3">
                   <input name="cost" inputMode="decimal" required className="input" placeholder="Repuesto, mano de obra externa…" />
                 </ActionForm>
               </Panel>
@@ -276,7 +276,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
                   Cancelación técnica: no llegó el repuesto, el equipo no tenía arreglo… Se revierte la venta sin contarla como pérdida
                   por precio o seguimiento.
                 </p>
-                <ActionForm action={cancelJob.bind(null, id, oppId, sale.id)} submitLabel="Registrar cancelación técnica" className="grid grid-cols-1 gap-3">
+                <ActionForm action={cancelJob.bind(null, id, oppId, sale.id)} submitLabel="Registrar cancelación técnica" className="flex flex-col gap-3">
                   <input name="reason" required placeholder="Qué pasó" className="input" />
                   <label className="flex items-center gap-2 text-sm">
                     <input name="refund" type="checkbox" defaultChecked /> Devolver lo cobrado
@@ -289,7 +289,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
 
               <Panel title="Revertir venta" tone="danger">
                 <p className="mb-3 text-xs text-neutral-500">Para anulaciones o devoluciones. La venta queda en el historial como revertida.</p>
-                <ActionForm action={reverseSale.bind(null, id, oppId, sale.id)} submitLabel="Revertir" className="grid grid-cols-1 gap-3">
+                <ActionForm action={reverseSale.bind(null, id, oppId, sale.id)} submitLabel="Revertir" className="flex flex-col gap-3">
                   <input name="reason" required placeholder="Motivo" className="input" />
                   <label className="flex items-center gap-2 text-sm">
                     <input name="refund" type="checkbox" defaultChecked /> Devolver lo cobrado
@@ -314,7 +314,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <Panel title="Embudo de origen">
-            <ActionForm action={bind(assignFunnel)} submitLabel="Guardar origen" className="grid grid-cols-1 gap-3">
+            <ActionForm action={bind(assignFunnel)} submitLabel="Guardar origen" className="flex flex-col gap-3">
               <FunnelSelect options={options} label="Embudo principal" defaultValue={opp.funnelId ?? ""} />
               <label className="flex flex-col gap-1 text-sm">
                 ¿Qué tan seguro es?
@@ -342,7 +342,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
                 ))}
               </ul>
             )}
-            <ActionForm action={bind(addTouchpoint)} submitLabel="Agregar" className="grid grid-cols-1 gap-3">
+            <ActionForm action={bind(addTouchpoint)} submitLabel="Agregar" className="flex flex-col gap-3">
               <FunnelSelect options={options.filter((o) => o.value !== opp.funnelId)} label="Embudo" />
               <input name="evidence" maxLength={300} placeholder="Detalle (opcional)" className="input" />
             </ActionForm>

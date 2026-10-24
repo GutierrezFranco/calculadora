@@ -147,6 +147,7 @@ describe("calidad de datos", () => {
     d.tallies.push({ id: "t", businessId: "b1", date: "2026-04-02", count: 20, method: "manual" });
     for (let i = 0; i < 4; i++) opp(d, "2026-04-02T15:00:00Z");
     win(d, opp(d, "2026-04-02T16:00:00Z", { funnelId: "f-meta", channel: "archivo" }), 50_000, "2026-04-02T17:00:00Z");
+    d.activities = [{ id: "a0", funnelId: "f-live", versionId: "v1", occurredOn: "2026-03-20", periodEnd: null, label: null, values: { lives: 2 }, quality: "real", channel: "manual" }];
     const metrics = computeMetrics(d, ABRIL);
     const q = assessQuality({ data: d, period: ABRIL, metrics, report: computeFunnelReport(d, ABRIL), daysLoaded: 1, days: 30, daysSinceUpdate: 9, pendingReview: 2, minSample: 5 });
     expect(q.labels).toEqual({ consultas: "estimado", cierre: "estimado", facturacion: "real", ganancia: "desconocido" });
@@ -156,7 +157,8 @@ describe("calidad de datos", () => {
     const texts = q.warnings.map((w) => w.text);
     expect(texts).toContain("Sin cargar hace 9 días");
     expect(texts).toContain("2 coincidencias de importación sin revisar");
-    expect(texts).toContain("TikTok Live: activo sin actividad cargada");
+    expect(texts).toContain("TikTok Live: sin actividad cargada este mes");
+    expect(texts.some((t) => t.startsWith("Meta Ads"))).toBe(false);
     expect(texts.some((t) => t.includes("sin embudo"))).toBe(true);
   });
 });

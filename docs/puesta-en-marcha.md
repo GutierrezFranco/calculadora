@@ -22,6 +22,11 @@ desde la app.
 `instalar-todo.sql` es para un proyecto nuevo. Si tu base ya existe, corré solo los archivos nuevos de
 [`supabase/migrations/`](../supabase/migrations/), en orden, de la misma forma (copiar, pegar, Run).
 
+Para pasar a la V1.3 sobre una base que ya tiene datos: corré solo
+[`20261025000000_v13_embudos.sql`](../supabase/migrations/20261025000000_v13_embudos.sql). No borra nada: crea los
+embudos a partir de los orígenes ya cargados, marca como venta directa las ventas rápidas e importaciones anteriores
+y agrega las tablas nuevas. Conviene hacerlo y publicar la app nueva en Vercel el mismo día.
+
 ## 3. Vercel: publicar la app
 
 1. En [vercel.com](https://vercel.com), **Add New → Project** e importá el repo de GitHub.

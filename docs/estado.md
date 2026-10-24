@@ -66,6 +66,25 @@ Completados después: contactos con fusión de duplicados, deshacer importación
 
 Pendiente de V1B para más adelante: análisis de cohortes de alumnos e informes antes/después en el panel del mentor.
 
+## V1.3 — Embudos y panel del mentor: completa
+
+Arquitectura y decisiones: [`arquitectura-v1-3.md`](arquitectura-v1-3.md).
+
+| Función | Estado |
+|---|---|
+| Tasa de cierre por cohorte (ganadas ÷ consultas del mes, con pendientes) y cobertura | ✅ Dominio y e2e |
+| Ventas del mes separadas en de la cohorte, de meses anteriores y directas | ✅ |
+| Embudos configurables: plantillas, embudos a medida (mentor), versiones de pasos, actividad real/estimada | ✅ SQL, dominio y e2e |
+| Embudo principal por oportunidad, puntos de contacto secundarios, Sin atribuir; la suma no duplica | ✅ |
+| Ventas directas (sin consulta previa): no tocan consultas ni cierre | ✅ |
+| Cancelación técnica: revierte la venta sin ser pérdida comercial; categorías de pérdida | ✅ |
+| Ingestión común: lotes, filas trazables, referencias externas, duplicadas y dudosas con revisión | ✅ SQL y e2e |
+| Google Sheets por link público con sincronización | ✅ (la descarga real no se prueba sin red) |
+| Inicio rediseñado, Mis embudos, detalle de embudo, celular | ✅ |
+| Panel del mentor: totales por moneda, cierre del programa, calidad y origen de datos, alertas, filtros | ✅ |
+| Ficha 360°: antes y ahora (datos o base declarada), embudos, actividad, diagnóstico, notas privadas | ✅ |
+| Migración sobre datos existentes sin pérdida | ✅ Test de base |
+
 ## Después: V1C y V2
 
 V1C: WhatsApp por QR (Baileys, como el CRM existente), APIs de Meta, IA con clave Anthropic del alumno, ángulos.

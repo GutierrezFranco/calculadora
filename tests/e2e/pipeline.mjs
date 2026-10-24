@@ -151,8 +151,8 @@ await submit("Guardar objetivos");
 await page.getByText("Objetivos guardados").waitFor();
 await page.goto(`${BASE}/negocio/${businessId}`);
 text = await main();
-check(text.includes("Objetivos de") && text.includes("de $ 1.000.000"), "el dashboard muestra el avance contra el objetivo");
-check(text.includes("Embudo") && text.includes("Oportunidades"), "el dashboard muestra el embudo");
+check(text.includes("del objetivo de $ 1.000.000"), "el dashboard muestra el avance contra el objetivo");
+check(text.includes("Resultados por embudo") && text.includes("Sin atribuir"), "el dashboard muestra los resultados por embudo");
 await shot("dashboard-objetivos");
 
 await page.setViewportSize({ width: 390, height: 844 });

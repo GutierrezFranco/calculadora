@@ -179,7 +179,7 @@ export default async function StudentPage({
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
           <section aria-label="Comparación de embudos" className="card flex flex-col gap-3 p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-bold capitalize">Embudos de {monthName(month)}</h2>
+              <h2 className="text-lg font-bold">Embudos de {monthName(month)}</h2>
               <div role="group" aria-label="Comparar por" className="flex gap-1 rounded-full bg-soft p-1">
                 {COMPARE.map((c) => (
                   <Link

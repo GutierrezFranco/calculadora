@@ -102,9 +102,11 @@ export function assessQuality(input: QualityInput): DataQuality {
     warnings.push({ level: "media", text: `${pct(unattributed / allIdentified)} de las consultas sin embudo` });
   }
   if (labels.ganancia === "estimado") warnings.push({ level: "media", text: `${m.contribucion!.ventasSinCosto} ventas sin costo: ganancia incompleta` });
+  // Solo se avisa si el embudo tenía actividad cargada antes: si nunca se cargó, no es un abandono.
   for (const r of report.rows) {
-    if (r.funnel?.status === "activo" && r.funnel.versions.some((v) => v.steps.length > 0) && r.actividad.length === 0) {
-      warnings.push({ level: "media", text: `${r.funnel.name}: activo sin actividad cargada` });
+    const loadedBefore = (data.activities ?? []).some((a) => a.funnelId === r.funnel?.id && a.occurredOn < period.from);
+    if (r.funnel?.status === "activo" && r.actividad.length === 0 && loadedBefore) {
+      warnings.push({ level: "media", text: `${r.funnel.name}: sin actividad cargada este mes` });
     }
   }
   if (input.pendingReview > 0) warnings.push({ level: "media", text: `${input.pendingReview} coincidencias de importación sin revisar` });

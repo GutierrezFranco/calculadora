@@ -172,7 +172,7 @@ export default async function MentorPage({
               <thead>
                 <tr className="text-left text-xs font-semibold text-muted">
                   <th className="px-3 py-2">Alumno</th>
-                  <th className="px-3 py-2">En MDM desde</th>
+                  <th className="whitespace-nowrap px-3 py-2">En MDM desde</th>
                   <th className="px-3 py-2 text-right">Consultas</th>
                   <th className="px-3 py-2 text-right">Clientes</th>
                   <th className="px-3 py-2 text-right">Cierre</th>
@@ -194,7 +194,7 @@ export default async function MentorPage({
                   const channels = Object.keys(q.origenVentas) as (keyof typeof CHANNEL_LABELS)[];
                   return (
                     <tr key={b.id} className="border-t border-soft align-top">
-                      <td className="px-3 py-3">
+                      <td className="min-w-52 px-3 py-3">
                         <Link href={`/mentor/alumno/${b.id}`} className="font-bold text-ink hover:underline">
                           {b.name}
                         </Link>
@@ -252,7 +252,7 @@ export default async function MentorPage({
                       </td>
                       <td className="min-w-48 px-3 py-3 text-xs">
                         {!b.active ? (
-                          <span className="text-muted">Inactivo</span>
+                          <span className="text-muted">Acceso desactivado</span>
                         ) : q.warnings.length === 0 ? (
                           <span className="text-muted">—</span>
                         ) : (

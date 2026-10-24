@@ -166,7 +166,7 @@ Por alumno se muestra:
 - **Advertencias:**
   - sin cargar hace N días;
   - días sin total de consultas;
-  - embudo activo sin actividad;
+  - embudo activo que dejó de cargar actividad;
   - coincidencias sin revisar;
   - ganancia incompleta;
   - muestra chica.

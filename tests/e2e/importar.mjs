@@ -75,8 +75,12 @@ await page.reload();
 await page.setInputFiles("input[type=file]", xlsx);
 await page.getByText("ventas listas para importar").waitFor();
 await page.click("button:has-text('Confirmar e importar')");
-await page.getByText("Este mismo archivo ya se importó").waitFor();
-check(await page.locator("button:has-text('Importar igual')").isVisible(), "el mismo archivo pide confirmación antes de duplicar");
+await page.getByText("ya estaban (se omiten, no se duplican)").waitFor();
+check(/\b0 nuevas · 4 ya estaban/.test((await page.locator("p", { hasText: "ya estaban (se omiten" }).innerText()).replace(/\s+/g, " ")), "el mismo archivo otra vez: las 4 ventas se detectan como ya importadas");
+await page.click("button:has-text('Listo, seguir a la revisión')");
+await page.getByText("se importaron 0 ventas · 4 ya estaban y no se duplicaron").waitFor();
+const { count: salesAfter } = await admin.from("sales").select("*", { count: "exact", head: true }).eq("business_id", businessId);
+check(salesAfter === 4, "y no se duplica ninguna venta");
 
 await page.reload();
 await page.check("input[type=radio] >> nth=1");

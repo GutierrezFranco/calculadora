@@ -70,7 +70,7 @@ export interface CohortResult {
   cancelaciones: number;
   /** ganadas / identificadas; null sin consultas identificadas. */
   ratio: number | null;
-  /** identificadas / recibidas; null sin consultas recibidas. */
+  /** Consultas cargadas una por una / recibidas; null sin consultas recibidas. */
   cobertura: number | null;
 }
 
@@ -96,7 +96,8 @@ export function cohortResult(cohort: Opportunity[], data: BusinessData, recibida
     pendientes,
     cancelaciones,
     ratio: identificadas > 0 ? ganadas / identificadas : null,
-    cobertura: recibidas > 0 ? Math.min(identificadas / recibidas, 1) : null,
+    // La cobertura mide qué parte de lo recibido está cargado una por una (cancelaciones incluidas).
+    cobertura: recibidas > 0 ? Math.min(cohort.length / recibidas, 1) : null,
   };
 }
 

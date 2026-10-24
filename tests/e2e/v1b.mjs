@@ -107,8 +107,9 @@ await page.getByText("Objetivos guardados").waitFor();
 await page.goto(`${BASE}/negocio/${businessId}`);
 let text = await main();
 check(text.includes("Debajo de lo esperado") || text.includes("Atención") || text.includes("Muestra chica"), "semáforo en la facturación lejos del objetivo");
-check(text.includes("Diagnóstico"), "el dashboard muestra el diagnóstico");
-check(text.includes("Adquisición por canal") && text.includes("Anuncios de Meta"), "el dashboard muestra los canales");
+check(/para hacer hoy/i.test(text), "el dashboard muestra el diagnóstico");
+check(text.includes("Resultados por embudo") && text.includes("Meta Ads → WhatsApp") && text.includes("Instagram orgánico"),
+  "el dashboard muestra los resultados por embudo (los orígenes cargados se asignan a su embudo)");
 check(/Costo por cliente\s+\$\s[\d.]+/.test(text), "costo por cliente de anuncios calculado");
 await shot("v1b-dashboard");
 
@@ -181,7 +182,7 @@ await page.click("button:has-text('Salir')");
 await page.waitForURL(/\/login/);
 await login("mentor@demo.test", "mentor-demo-123", /\/mentor$/);
 text = await main();
-check(text.includes("Taller Demo V1B") && text.includes("Con alertas"), "el panel del mentor lista al alumno y el filtro de alertas");
+check(text.includes("Taller Demo V1B") && text.includes("Necesitan atención"), "el panel del mentor lista al alumno y el filtro de alertas");
 await shot("v1b-mentor");
 const studentRow = page.locator("tr", { hasText: "Taller Demo V1B" });
 await studentRow.locator("summary:has-text('Nueva contraseña')").click();

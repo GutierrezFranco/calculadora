@@ -76,8 +76,8 @@ export default async function FunnelDetailPage({
         </div>
 
         <section aria-label="Recorrido" className="card flex flex-col gap-4 p-5">
-          <h2 className="text-lg font-bold capitalize">
-            {monthName(month)}: de la actividad a la plata
+          <h2 className="text-lg font-bold">
+            {monthName(month)[0].toUpperCase() + monthName(month).slice(1)}: de la actividad a la plata
           </h2>
           <ol className="flex flex-wrap items-stretch gap-2">
             {journey.map((j, i) => (

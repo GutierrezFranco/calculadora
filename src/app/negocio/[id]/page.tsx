@@ -153,7 +153,13 @@ export default async function BusinessHomePage({
               m.ventas ? (
                 <>
                   {m.ventas.total} operaciones ganadas
-                  {m.ventas.directas > 0 && ` · ${m.ventas.directas} ventas directas`} · <Delta current={m.clientes} previous={prev.clientes} />
+                  {m.ventas.directas > 0 && ` · ${m.ventas.directas} ventas directas`}
+                  {prev.clientes ? (
+                    <>
+                      {" · "}
+                      <Delta current={m.clientes} previous={prev.clientes} />
+                    </>
+                  ) : null}
                 </>
               ) : null
             }
