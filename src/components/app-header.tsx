@@ -9,6 +9,7 @@ export function AppHeader({ user, businessId }: { user: CurrentUser; businessId?
     ...(businessId
       ? [
           { href: `/negocio/${businessId}`, label: "Dashboard" },
+          { href: `/negocio/${businessId}/pipeline`, label: "Pipeline" },
           { href: `/negocio/${businessId}/cargar`, label: "Cargar" },
           { href: `/negocio/${businessId}/configuracion`, label: "Configuración" },
         ]

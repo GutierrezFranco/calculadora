@@ -124,7 +124,7 @@ await page.locator("tr", { hasText: "Taller Demo Uno" }).getByText("Inactivo").w
 await page.click("button:has-text('Salir')");
 await page.waitForURL(/\/login/);
 await login("alumna@demo.test", "alumno-demo-123", (url) => url.pathname === "/");
-await page.getByText("no tiene un negocio activo").waitFor();
+await page.getByRole("heading", { name: "Tu cuenta no tiene un negocio activo" }).waitFor();
 check(true, "alumna desactivada no ve su negocio");
 
 await browser.close();

@@ -1,12 +1,9 @@
-"use client";
-
-import { useActionState } from "react";
+import { ActionForm } from "@/components/action-form";
 import { createStudent } from "./actions";
 
 export function NewStudentForm() {
-  const [state, action, pending] = useActionState(createStudent, null);
   return (
-    <form action={action} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <ActionForm action={createStudent} submitLabel="Crear alumno" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <label className="flex flex-col gap-1 text-sm">
         Nombre del alumno
         <input name="fullName" className="input" />
@@ -46,12 +43,6 @@ export function NewStudentForm() {
           <option value="Europe/Madrid">España</option>
         </select>
       </label>
-      <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row sm:items-center">
-        <button type="submit" disabled={pending} className="btn-primary">
-          {pending ? "Creando…" : "Crear alumno"}
-        </button>
-        {state && <p className={`text-sm ${state.ok ? "text-green-700 dark:text-green-400" : "text-red-600"}`}>{state.message}</p>}
-      </div>
-    </form>
+    </ActionForm>
   );
 }

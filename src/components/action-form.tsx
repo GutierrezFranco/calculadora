@@ -1,10 +1,13 @@
 "use client";
 
-import { useActionState, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useRef, type ReactNode } from "react";
 
 type FormState = { ok: boolean; message: string } | null;
 
-/** Formulario con botón de envío y mensaje de resultado debajo. */
+/**
+ * Formulario con botón de envío y mensaje de resultado debajo. Si hay un error,
+ * conserva lo que se escribió; solo se vacía cuando la acción sale bien.
+ */
 export function ActionForm({
   action,
   submitLabel,
@@ -17,8 +20,23 @@ export function ActionForm({
   children: ReactNode;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (state?.ok) formRef.current?.reset();
+  }, [state]);
+
   return (
-    <form action={formAction} className={className ?? "flex flex-col gap-3"}>
+    <form
+      ref={formRef}
+      // Se envía a mano para que React no vacíe el formulario cuando la acción devuelve un error.
+      onSubmit={(event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        startTransition(() => formAction(formData));
+      }}
+      className={className ?? "flex flex-col gap-3"}
+    >
       {children}
       <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row sm:items-center">
         <button type="submit" disabled={pending} className="btn-primary">

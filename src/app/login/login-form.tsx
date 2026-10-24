@@ -1,12 +1,20 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { signIn } from "./actions";
 
 export function LoginForm() {
   const [error, action, pending] = useActionState(signIn, null);
   return (
-    <form action={action} className="flex flex-col gap-3">
+    <form
+      // Envío manual: si la contraseña es incorrecta, el email no se borra.
+      onSubmit={(event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        startTransition(() => action(formData));
+      }}
+      className="flex flex-col gap-3"
+    >
       <label className="flex flex-col gap-1 text-sm">
         Email
         <input name="email" type="email" autoComplete="email" required className="input" />

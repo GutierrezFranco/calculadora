@@ -1,18 +1,10 @@
 import { ActionForm } from "@/components/action-form";
 import { AppHeader } from "@/components/app-header";
+import { LEAD_SOURCE_OPTIONS } from "@/components/options";
 import { addDays, localDate } from "@/domain/dates";
 import { getBusinessForUser } from "@/lib/business-access";
 import { quickSale, saveTally } from "../actions";
 
-const SOURCES = [
-  ["desconocido", "No sé"],
-  ["organico", "Orgánico (Instagram, TikTok…)"],
-  ["meta_ads", "Anuncios de Meta"],
-  ["referido", "Recomendación"],
-  ["directo", "Pasó por el local"],
-  ["prospeccion", "Prospección"],
-  ["otro", "Otro"],
-] as const;
 
 export default async function LoadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,7 +13,7 @@ export default async function LoadPage({ params }: { params: Promise<{ id: strin
 
   const { data: recent } = await supabase
     .from("inquiry_tallies")
-    .select("date, count")
+    .select("date, count, method")
     .eq("business_id", id)
     .gte("date", addDays(today, -13))
     .order("date", { ascending: false });
@@ -50,7 +42,7 @@ export default async function LoadPage({ params }: { params: Promise<{ id: strin
           <h2 className="mb-2 mt-6 text-sm font-medium text-neutral-500">Últimos 14 días</h2>
           <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
             {Array.from({ length: 14 }, (_, i) => addDays(today, -i)).map((date) => {
-              const tally = recent?.find((r) => r.date === date);
+              const tally = recent?.find((r) => r.date === date && r.method === "manual") ?? recent?.find((r) => r.date === date);
               return (
                 <li key={date} className="flex justify-between gap-2 tabular-nums">
                   <span className="text-neutral-500">{date.slice(5).split("-").reverse().join("/")}</span>
@@ -101,7 +93,7 @@ export default async function LoadPage({ params }: { params: Promise<{ id: strin
             <label className="flex flex-col gap-1 text-sm">
               ¿Cómo llegó?
               <select name="source" defaultValue="desconocido" className="input">
-                {SOURCES.map(([value, label]) => (
+                {LEAD_SOURCE_OPTIONS.map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>

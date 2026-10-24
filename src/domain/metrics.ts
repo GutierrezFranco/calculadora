@@ -1,7 +1,7 @@
 import { eachDay, instantInPeriod, localDate } from "./dates";
 import { addTo, convert, type MoneyTotals } from "./money";
 import { amountRefunded, effectiveSaleAmount } from "./pipeline";
-import type { BusinessData, LocalDate, Period } from "./types";
+import type { BusinessData, InquiryTally, LocalDate, Period } from "./types";
 
 /**
  * Métricas de un período. `null` significa "Sin datos": nunca se reemplaza
@@ -86,8 +86,15 @@ export function computeMetrics(data: BusinessData, period: Period): PeriodMetric
 
   // Consultas: el total diario cargado manda sobre las oportunidades de ese día,
   // así no se cuentan dos veces cuando coexisten ambos registros.
-  const talliesByDay = new Map<LocalDate, number>();
-  for (const t of periodTallies) talliesByDay.set(t.date, (talliesByDay.get(t.date) ?? 0) + t.count);
+  // Si un día tiene totales de varias fuentes, manda el manual, después el importado
+  // y por último el detectado desde WhatsApp: nunca se suman entre sí.
+  const priority: Record<InquiryTally["method"], number> = { manual: 0, importado: 1, whatsapp: 2 };
+  const chosen = new Map<LocalDate, InquiryTally>();
+  for (const t of periodTallies) {
+    const current = chosen.get(t.date);
+    if (!current || priority[t.method] < priority[current.method]) chosen.set(t.date, t);
+  }
+  const talliesByDay = new Map<LocalDate, number>([...chosen].map(([day, t]) => [day, t.count]));
   const oppsByDay = new Map<LocalDate, number>();
   for (const o of createdOpps) {
     const day = localDate(o.createdAt, tz);

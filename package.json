@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:db": "./scripts/test-db.sh",
-    "test:e2e": "node tests/e2e/flujo.mjs"
+    "test:e2e": "./scripts/test-e2e.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

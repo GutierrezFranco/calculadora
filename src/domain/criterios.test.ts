@@ -97,6 +97,14 @@ describe("Consultas y oportunidades", () => {
     opp(data, "2026-04-04T14:00:00Z"); // día sin total cargado: cuenta la oportunidad
     expect(computeMetrics(data, ABRIL).consultasCalificadas).toBe(26);
   });
+
+  it("total manual e importado del mismo día no se suman: manda el manual", () => {
+    const data = emptyData();
+    data.tallies.push({ id: id(), businessId: "b1", date: "2026-04-03", count: 10, method: "importado" });
+    data.tallies.push({ id: id(), businessId: "b1", date: "2026-04-03", count: 12, method: "manual" });
+    data.tallies.push({ id: id(), businessId: "b1", date: "2026-04-04", count: 7, method: "importado" });
+    expect(computeMetrics(data, ABRIL).consultasCalificadas).toBe(19);
+  });
 });
 
 describe("Señas, ventas y cobros", () => {
