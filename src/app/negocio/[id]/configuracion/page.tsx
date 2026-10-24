@@ -79,6 +79,21 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
             <input name="consultas" type="number" min={0} defaultValue={goals.consultas ?? ""} className="input" />
           </label>
         </ActionForm>
+
+        <h2 className="mb-1 mt-10 text-xl font-semibold">Exportar datos</h2>
+        <p className="mb-4 text-sm text-neutral-500">Archivos CSV que se abren con Excel o Google Sheets.</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            ["ventas", "Ventas"],
+            ["oportunidades", "Oportunidades"],
+            ["cobros", "Cobros"],
+            ["consultas", "Consultas"],
+          ].map(([tipo, label]) => (
+            <a key={tipo} href={`/negocio/${id}/exportar?tipo=${tipo}`} className="btn-secondary">
+              {label}
+            </a>
+          ))}
+        </div>
       </main>
     </>
   );

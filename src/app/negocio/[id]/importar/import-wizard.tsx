@@ -227,7 +227,9 @@ export function ImportWizard({
                 {parsed.errors.length > 0 && (
                   <>
                     {" · "}
-                    <span className="text-red-600">{parsed.errors.length} filas con errores (no se importan)</span>
+                    <span className="text-red-600">
+                      {parsed.errors.length === 1 ? "1 fila con error (no se importa)" : `${parsed.errors.length} filas con errores (no se importan)`}
+                    </span>
                   </>
                 )}
                 {parsed.skipped > 0 && <span className="text-neutral-500"> · {parsed.skipped} filas vacías</span>}

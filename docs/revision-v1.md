@@ -64,6 +64,7 @@ Respuestas de Franco a la primera ronda de preguntas. Mandan sobre la especifica
 
 ### Supuestos que tomé y conviene confirmar
 
+- **Oportunidad con venta revertida:** pasa a Perdida (motivo "Venta revertida: …") y cuenta como perdida en la tasa de cierre del período en que se revirtió.
 - **Venta revertida:** desaparece del período en que se ganó (los números muestran la situación actual), la devolución de plata cuenta en la fecha en que se devolvió, y la auditoría conserva el original.
 
 ## 5. Preguntas abiertas

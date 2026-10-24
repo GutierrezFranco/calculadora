@@ -5,9 +5,13 @@ Pasos para dejar MDM OS funcionando con tu cuenta de Supabase y Vercel. Se hacen
 ## 1. Supabase: crear la base
 
 1. En [supabase.com](https://supabase.com), **New project**. Región: São Paulo (`sa-east-1`), la más cercana a Argentina.
-2. Entrá a **SQL Editor** → **New query**, pegá todo el contenido de
-   [`supabase/migrations/20261024000000_v1a_nucleo.sql`](../supabase/migrations/20261024000000_v1a_nucleo.sql) y tocá **Run**.
-   Tiene que terminar con "Success. No rows returned".
+2. Entrá a **SQL Editor** → **New query** y corré, **en este orden**, el contenido completo de cada archivo
+   (pegar → **Run**, uno por vez). Cada uno tiene que terminar con "Success. No rows returned":
+   1. [`supabase/migrations/20261024000000_v1a_nucleo.sql`](../supabase/migrations/20261024000000_v1a_nucleo.sql)
+   2. [`supabase/migrations/20261024010000_v1a_pipeline.sql`](../supabase/migrations/20261024010000_v1a_pipeline.sql)
+
+   Si ya habías corrido el primero, corré solo el segundo. Cuando haya archivos nuevos en `supabase/migrations/`,
+   se corren igual: solo los nuevos, en orden.
 3. **Authentication → Sign In / Providers → Email**: dejá activado el login por email y **desactivá "Allow new users to sign up"**.
    Las cuentas de alumnos las creás vos desde el panel del mentor; nadie más se puede registrar.
 
@@ -46,5 +50,6 @@ contraseña: entra directo a su dashboard.
 npx supabase start   # Supabase local con Docker; aplica la migración
 cp .env.example .env.local   # y completar con los datos que imprime el comando anterior
 npm run dev
-npm run test:e2e     # prueba completa contra Supabase local (resetear antes con npx supabase db reset)
+npm run build && npm start   # en otra terminal
+BASE_URL=http://localhost:3000 npm run test:e2e   # resetea la base local y recorre la app
 ```

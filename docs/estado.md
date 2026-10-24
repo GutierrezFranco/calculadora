@@ -2,50 +2,65 @@
 
 Registro de funciones implementadas y pendientes, como pide la sección 14 de la especificación.
 
-Pruebas: `npm test` (reglas comerciales), `npm run test:db` (acceso en la base) y `npm run test:e2e` (flujo completo en el navegador contra Supabase local).
+Pruebas:
 
-## V1A — Base confiable
+- `npm test`: reglas comerciales, métricas, embudo e interpretación de planillas (32 tests).
+- `npm run test:db`: acceso por negocio y pipeline en la base (Postgres local).
+- `npm run test:e2e`: tres recorridos completos en el navegador contra Supabase local (alta y acceso, pipeline, importación y exportación).
+
+## V1A — Base confiable: completa
 
 | Función | Estado |
 |---|---|
-| Reglas comerciales (`src/domain`): etapas, ventas, señas, cobros, devoluciones, reversiones | ✅ Hecho, con tests |
-| Cálculo de métricas por período (30/60/90 días y personalizado) con "Sin datos" | ✅ Hecho, con tests |
-| Base de datos: tablas, aislamiento por negocio, auditoría, historial de etapas | ✅ Probada en Postgres local y en Supabase local |
-| Dashboard del alumno con datos reales (y demo ficticia en `/demo`) | ✅ Hecho |
-| Login con email y contraseña, redirección por rol | ✅ Hecho, probado de punta a punta |
-| Panel del mentor: listado con métricas de 30 días, días cargados, alta de alumnos, activar/desactivar, entrar al negocio con registro de acceso | ✅ Hecho |
-| Carga rápida: total diario de consultas y venta rápida con cobro | ✅ Hecho |
-| Carga de oportunidades, presupuestos, señas y cobros de saldo | ⏳ Siguiente (junto con el pipeline) |
-| Pipeline kanban (escritorio, adaptado a celular) | ⏳ Siguiente |
-| Contactos con teléfonos y fusión de duplicados | ⏳ Pendiente (tablas listas) |
-| Presupuestos | ⏳ Pendiente (tabla lista) |
-| Objetivos | ⏳ Pendiente (tabla lista) |
-| Embudo comprimido en el dashboard | ⏳ Pendiente |
-| Importación guiada de Excel/CSV | ⏳ Pendiente |
-| Exportación | ⏳ Pendiente |
-| Configuración del negocio: moneda, cotización, política de señas | ✅ Hecho |
-| Cotización guardada en cada venta y cobro | ✅ Hecho, con tests |
-| Cambio de contraseña del alumno | ⏳ Pendiente |
+| Reglas comerciales: etapas, ventas, señas, cobros, devoluciones, reversiones | ✅ |
+| Métricas por período (30/60/90 días) con "Sin datos" y comparación con el período anterior | ✅ |
+| Base de datos: aislamiento por negocio, auditoría, historial de etapas, ventas y cobros no editables | ✅ |
+| Login con email y contraseña, cambio de contraseña | ✅ |
+| Panel del mentor: alumnos con métricas, días cargados, alta, activar/desactivar, registro de accesos | ✅ |
+| Dashboard del alumno con objetivos del mes y embudo | ✅ |
+| Carga rápida: consultas del día y venta rápida | ✅ |
+| Pipeline kanban (escritorio y celular) con detalle de oportunidad | ✅ |
+| Oportunidades: alta con aviso de oportunidad abierta del mismo cliente | ✅ |
+| Presupuestos con versiones, señas, ganar con anticipo, cobro de saldo, completar | ✅ |
+| Perder (con o sin devolución de seña), reabrir, revertir venta con devolución | ✅ |
+| Costo directo cargable después de la venta | ✅ |
+| Próximo seguimiento con aviso en el tablero | ✅ |
+| Objetivos mensuales de facturación, ventas y consultas | ✅ |
+| Importación guiada de Excel/CSV (ventas y consultas por día) | ✅ |
+| Exportación CSV (ventas, oportunidades, cobros, consultas) | ✅ |
+| Configuración: moneda, cotización del dólar, política de señas | ✅ |
+| Cotización guardada en cada venta y cobro | ✅ |
+
+### Pendiente menor de V1A
+
+- Fusionar contactos duplicados (la tabla lo soporta; falta la pantalla).
+- Deshacer una importación completa.
+- Que el mentor pueda resetear la contraseña de un alumno desde el panel.
 
 ## Criterios de aceptación (sección 12)
 
 | # | Criterio | Estado |
 |---|---|---|
-| 1 | Un contacto, dos necesidades: dos oportunidades | ✅ Test |
-| 2 | Misma consulta tres días: una oportunidad | ✅ Test (la pantalla debe ofrecer la oportunidad abierta) |
-| 3 | Proveedor o conversación personal: cero consultas | ⏳ Depende de la lectura de WhatsApp (V1C); en carga manual el alumno solo carga consultas calificadas |
-| 4 | Seña sin aceptación firme | ✅ Test |
-| 5 | Reparación aceptada con anticipo | ✅ Test |
-| 6 | Cobro de saldo sin duplicar facturación | ✅ Test |
-| 7 | Reversión con devolución | ✅ Test (dominio) y bloqueo en base de datos |
-| 8 | La IA no confirma cierres | ✅ Test |
+| 1 | Un contacto, dos necesidades: dos oportunidades | ✅ Test de dominio y e2e |
+| 2 | Misma consulta tres días: una oportunidad | ✅ La pantalla avisa si el cliente ya tiene una abierta (e2e) |
+| 3 | Proveedor o conversación personal: cero consultas | ⏳ V1C (lectura de WhatsApp); en carga manual el alumno solo carga consultas calificadas |
+| 4 | Seña sin aceptación firme | ✅ Dominio, SQL y e2e |
+| 5 | Reparación aceptada con anticipo | ✅ Dominio, SQL y e2e |
+| 6 | Cobro de saldo sin duplicar facturación | ✅ Dominio, SQL y e2e |
+| 7 | Reversión con devolución | ✅ Dominio, SQL y e2e |
+| 8 | La IA no confirma cierres | ✅ Dominio; en la base, ganar y perder solo por acciones del usuario |
 | 9 | Reels con el mismo ángulo no implican origen | ⏳ V1C |
 | 10 | Venta con dos ángulos no se duplica | ⏳ V1C |
-| 11 | Sin datos ≠ cero | ✅ Test |
-| 12 | Aislamiento entre alumnos y rastro del mentor | ✅ Test SQL |
-| 13 | 30/60/90 y ventanas equivalentes | ✅ Test |
-| 14 | Totales diarios y oportunidades no se duplican | ✅ Test |
+| 11 | Sin datos ≠ cero | ✅ Dominio y e2e |
+| 12 | Aislamiento entre alumnos y rastro del mentor | ✅ SQL y e2e |
+| 13 | 30/60/90 y ventanas equivalentes | ✅ Dominio |
+| 14 | Totales diarios y oportunidades no se duplican | ✅ Dominio (también manual vs. importado) |
 
-## Fuera de V1A
+## Siguiente: V1B
 
-V1B (proyecciones, semáforos, fuentes, prospección, Instagram/Ads manual), V1C (WhatsApp por QR, APIs de Meta, IA con clave Anthropic, ángulos) y V2 (stock, caja, sucursales, empleados).
+Proyecciones (ingeniería inversa de objetivos), semáforos con umbrales, análisis por fuente, prospección CSV, snapshots manuales de Instagram/Ads y diagnóstico de cuellos de botella.
+
+## Después: V1C y V2
+
+V1C: WhatsApp por QR (Baileys, como el CRM existente), APIs de Meta, IA con clave Anthropic del alumno, ángulos.
+V2: stock, caja, sucursales, empleados.

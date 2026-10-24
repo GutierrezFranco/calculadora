@@ -30,7 +30,10 @@ export function AppHeader({ user, businessId }: { user: CurrentUser; businessId?
           ))}
         </nav>
         <form action={signOut} className="flex items-center gap-3 text-sm">
-          <span className="hidden text-neutral-500 sm:inline">{user.email}</span>
+          <Link href="/cuenta" className="text-neutral-500 hover:underline">
+            <span className="hidden sm:inline">{user.email}</span>
+            <span className="sm:hidden">Cuenta</span>
+          </Link>
           <button type="submit" className="text-neutral-600 underline dark:text-neutral-400">
             Salir
           </button>

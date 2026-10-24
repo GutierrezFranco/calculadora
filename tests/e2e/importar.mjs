@@ -63,7 +63,7 @@ await page.getByText("ventas listas para importar").waitFor();
 check((await page.inputValue("input[type=number]")) === "3", "detecta que los encabezados están en la fila 3");
 const summary = (await page.locator("section", { hasText: "3. Revisá" }).locator("p").first().innerText()).replace(/\s/g, " ");
 check(summary.includes("4 ventas listas"), "4 ventas válidas");
-check(summary.includes("1 filas con errores"), "1 fila con error, que no se importa");
+check(summary.includes("1 fila con error"), "1 fila con error, que no se importa");
 check(summary.includes("$ 133.000") && summary.includes("US$"), "total por moneda, sin mezclar pesos y dólares");
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/importar.png`, fullPage: true });
 
@@ -95,6 +95,33 @@ await page.goto(`${BASE}/negocio/${businessId}`);
 const text = (await page.locator("main").innerText()).replace(/\s/g, " ");
 check(text.includes("$ 133.000"), "el dashboard suma las ventas importadas en pesos");
 check(text.includes("US$"), "y muestra aparte las de dólares");
+
+// Exportación: el CSV trae lo importado, para Excel en español.
+const exported = await page.request.get(`${BASE}/negocio/${businessId}/exportar?tipo=ventas`);
+const csvText = await exported.text();
+check(exported.headers()["content-disposition"]?.includes("ventas"), "la exportación descarga un archivo");
+check(csvText.split("\r\n").length === 5 && csvText.includes("Módulo A12;85000;ARS"), "el CSV de ventas trae las 4 ventas con ; y montos");
+check(csvText.includes("importada"), "y marca cuáles fueron importadas");
+const other = await page.request.get(`${BASE}/negocio/${crypto.randomUUID()}/exportar?tipo=ventas`);
+check(other.status() === 404, "no se exporta un negocio ajeno");
+
+// Cambio de contraseña.
+await page.goto(`${BASE}/cuenta`);
+await page.fill("input[name=password]", "nueva-clave-456");
+await page.fill("input[name=confirm]", "otra-cosa-789");
+await page.click("button:has-text('Cambiar contraseña')");
+await page.getByText("Las contraseñas no coinciden").waitFor();
+check((await page.inputValue("input[name=password]")) === "nueva-clave-456", "con error, el formulario conserva lo escrito");
+await page.fill("input[name=confirm]", "nueva-clave-456");
+await page.click("button:has-text('Cambiar contraseña')");
+await page.getByText("Contraseña cambiada").waitFor();
+await page.click("button:has-text('Salir')");
+await page.waitForURL(/\/login/);
+await page.fill("input[name=email]", email);
+await page.fill("input[name=password]", "nueva-clave-456");
+await page.click("button[type=submit]");
+await page.waitForURL(/\/negocio\//);
+check(true, "entra con la contraseña nueva");
 
 await browser.close();
 console.log("Todos los pasos de importación pasaron");
