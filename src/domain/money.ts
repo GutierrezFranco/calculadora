@@ -54,3 +54,14 @@ export function convert(value: Money, to: CurrencyCode, usdRate: number | null):
   if (to === "USD") return { amount: Math.round(value.amount / usdRate), currency: to };
   return null;
 }
+
+/** Convierte "150.000,50", "150000.50" o "$ 20000" a centavos. null si está vacío, es negativo o no es un número. */
+export function parseAmountText(input: string): number | null {
+  if (input.trim() === "") return null;
+  let text = input.trim().replace(/[$\s]/g, "");
+  // Con coma decimal (formato argentino) los puntos son separadores de miles.
+  if (text.includes(",")) text = text.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(text)) text = text.replace(/\./g, "");
+  const value = Number(text);
+  return Number.isFinite(value) && value >= 0 ? Math.round(value * 100) : null;
+}

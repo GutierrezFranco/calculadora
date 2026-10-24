@@ -11,6 +11,7 @@ export function AppHeader({ user, businessId }: { user: CurrentUser; businessId?
           { href: `/negocio/${businessId}`, label: "Dashboard" },
           { href: `/negocio/${businessId}/pipeline`, label: "Pipeline" },
           { href: `/negocio/${businessId}/cargar`, label: "Cargar" },
+          { href: `/negocio/${businessId}/importar`, label: "Importar" },
           { href: `/negocio/${businessId}/configuracion`, label: "Configuración" },
         ]
       : []),

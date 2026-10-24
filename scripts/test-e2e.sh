@@ -6,3 +6,4 @@ cd "$(dirname "$0")/.."
 npx supabase db reset >/dev/null
 node tests/e2e/flujo.mjs
 node tests/e2e/pipeline.mjs
+node tests/e2e/importar.mjs
