@@ -51,21 +51,21 @@ export function AppHeader({ user, businessId }: { user: CurrentUser; businessId?
                 {l.label}
               </Link>
             ))}
-            {more.length > 0 && (
-              <details className="relative">
-                <summary className={`cursor-pointer list-none rounded-full px-3 py-2 font-medium ${dark ? "text-white/85 hover:bg-white/10" : "text-[#47433D] hover:bg-soft"}`}>
-                  Más ▾
-                </summary>
-                <div className="absolute z-20 mt-1 flex min-w-56 flex-col rounded-2xl border border-line bg-white p-2 text-ink shadow-lg">
-                  {more.map((l) => (
-                    <Link key={l.href} href={l.href} className="rounded-xl px-3 py-2 hover:bg-soft">
-                      {l.label}
-                    </Link>
-                  ))}
-                </div>
-              </details>
-            )}
           </nav>
+          {more.length > 0 && (
+            <details className="relative order-1 shrink-0 text-sm sm:order-none">
+              <summary className={`cursor-pointer list-none rounded-full px-3 py-2 font-medium ${dark ? "text-white/85 hover:bg-white/10" : "text-[#47433D] hover:bg-soft"}`}>
+                Más ▾
+              </summary>
+              <div className="absolute right-0 z-50 mt-2 flex min-w-56 flex-col rounded-2xl border border-line bg-white p-2 text-ink shadow-lg">
+                {more.map((l) => (
+                  <Link key={l.href} href={l.href} className="rounded-xl px-3 py-2 hover:bg-soft">
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </details>
+          )}
           <form action={signOut} className="ml-auto flex items-center gap-3 text-sm sm:ml-0">
             <Link href="/cuenta" className={dark ? "text-white/75 hover:underline" : "text-muted hover:underline"}>
               <span className="hidden sm:inline">{user.email}</span>
