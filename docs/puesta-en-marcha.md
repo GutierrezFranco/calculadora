@@ -2,29 +2,25 @@
 
 Pasos para dejar MDM OS funcionando con tu cuenta de Supabase y Vercel. Se hacen una sola vez.
 
-## 1. Supabase: crear la base
+## 1. Supabase: crear la base (un solo copiar y pegar)
 
 1. En [supabase.com](https://supabase.com), **New project**. Región: São Paulo (`sa-east-1`), la más cercana a Argentina.
-2. Entrá a **SQL Editor** → **New query** y corré, **en este orden**, el contenido completo de cada archivo
-   (pegar → **Run**, uno por vez). Cada uno tiene que terminar con "Success. No rows returned":
-   1. [`supabase/migrations/20261024000000_v1a_nucleo.sql`](../supabase/migrations/20261024000000_v1a_nucleo.sql)
-   2. [`supabase/migrations/20261024010000_v1a_pipeline.sql`](../supabase/migrations/20261024010000_v1a_pipeline.sql)
-   3. [`supabase/migrations/20261024020000_v1b.sql`](../supabase/migrations/20261024020000_v1b.sql)
-
-   Si ya corriste algunos, corré solo los que faltan. Cuando haya archivos nuevos en `supabase/migrations/`,
-   se corren igual: solo los nuevos, en orden.
+   Guardá la contraseña de la base que te genera (la app no la usa, pero no se recupera).
+2. Abrí [`supabase/instalar-todo.sql`](../supabase/instalar-todo.sql), copiá **todo** el contenido (botón de copiar,
+   arriba a la derecha en GitHub), pegalo en Supabase → **SQL Editor → New query** y tocá **Run**.
+   Tiene que terminar con "Success. No rows returned".
 3. **Authentication → Sign In / Providers → Email**: dejá activado el login por email y **desactivá "Allow new users to sign up"**.
-   Las cuentas de alumnos las creás vos desde el panel del mentor; nadie más se puede registrar.
 
 ## 2. Supabase: tu usuario de mentor
 
-1. **Authentication → Users → Add user → Create new user**: tu email y una contraseña, con **Auto Confirm User** marcado.
-2. En **SQL Editor**, corré esto con tu email:
+**Authentication → Users → Add user → Create new user**: tu email y una contraseña, con **Auto Confirm User** marcado.
+**El primer usuario que se crea es el mentor**, así que creá el tuyo antes que ningún otro. Los alumnos los creás después
+desde la app.
 
-   ```sql
-   update public.profiles set is_mentor = true
-   where id = (select id from auth.users where email = 'TU-EMAIL');
-   ```
+### Si ya tenías la base instalada (actualizaciones)
+
+`instalar-todo.sql` es para un proyecto nuevo. Si tu base ya existe, corré solo los archivos nuevos de
+[`supabase/migrations/`](../supabase/migrations/), en orden, de la misma forma (copiar, pegar, Run).
 
 ## 3. Vercel: publicar la app
 

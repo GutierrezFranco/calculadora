@@ -6,12 +6,11 @@
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
--- El perfil se crea solo al crear la cuenta; el primer mentor se marca sin usuario (editor SQL).
+-- El perfil se crea solo al crear la cuenta: el primer usuario es el mentor, los siguientes no.
+insert into auth.users (id) values ('00000000-0000-0000-0000-00000000000f'); -- mentor
 insert into auth.users (id) values
   ('00000000-0000-0000-0000-00000000000a'), -- alumna A
-  ('00000000-0000-0000-0000-00000000000b'), -- alumno B
-  ('00000000-0000-0000-0000-00000000000f'); -- mentor
-update public.profiles set is_mentor = true where id = '00000000-0000-0000-0000-00000000000f';
+  ('00000000-0000-0000-0000-00000000000b'); -- alumno B
 insert into public.businesses (id, name, usd_rate) values
   ('10000000-0000-0000-0000-00000000000a', 'Taller Demo A', 1450),
   ('10000000-0000-0000-0000-00000000000b', 'Taller Demo B', null);
@@ -37,6 +36,10 @@ begin
   raise notice 'ok: %', label;
 end;
 $$;
+
+select pg_temp.expect((select is_mentor from public.profiles where id = '00000000-0000-0000-0000-00000000000f'),
+  'el primer usuario creado es el mentor');
+select pg_temp.expect((select count(*) from public.profiles where is_mentor) = 1, 'los siguientes usuarios no son mentores');
 
 -- ── Alumna A ──
 set role authenticated;
