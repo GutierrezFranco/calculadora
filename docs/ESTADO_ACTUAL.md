@@ -193,11 +193,14 @@ No volver a ejecutar esta migración ni usar `db push` indiscriminadamente:
 el historial remoto y los nombres locales requieren conciliación previa.
 No se repararon ni marcaron versiones anteriores en esta sesión.
 
-## 8. Identificador visible de la compilación
+## 8. Versión visible mediante número de PR
 
-El encabezado muestra `Versión <SHA corto>` debajo de MDM OS. `next.config.ts`
-fija únicamente `VERCEL_GIT_COMMIT_SHA` como `MDM_BUILD_SHA` durante el build;
-no expone claves. El title conserva el SHA completo. En desarrollo sin SHA muestra
-`local`; un build sin identificador informa `sin identificar`.
-Identifica el código mostrado, no las migraciones ni si hay otro despliegue en curso.
-No fuerza recarga, no consulta GitHub periódicamente ni descarta formularios abiertos.
+El encabezado muestra **Versión PR #9**, sin hashes. El propietario pidió
+explícitamente números de PR comprensibles en lugar de identificadores de commit.
+`next.config.ts` fija el número durante el build: usa el PR de preview o el número
+reconocido en el mensaje de merge de main (merge normal/squash).
+`RELEASE_PR` en `src/domain/release.ts` es el respaldo explícito para builds sin
+metadatos; actualizarlo para cada PR según AGENTS.md. No requiere consultas a GitHub
+ni claves nuevas. Identifica la compilación mostrada, no el último PR abierto ni el
+estado de las migraciones. No fuerza recargas ni descarta formularios abiertos.
+La corrección está en el mismo PR #9, todavía pendiente de merge del propietario.

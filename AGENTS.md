@@ -100,7 +100,10 @@ probado. No resolver contradicciones de producto silenciosamente.
 3. Hacer commit y push de los cambios autorizados y dejar el PR revisable.
    El SHA del propio documento no puede escribirse dentro del mismo commit:
    registrar el último SHA verificado y cómo resolver el HEAD vigente.
-4. Informar qué cambió, qué se probó y qué falta. Si falla una herramienta,
+4. Mantener `RELEASE_PR` en `src/domain/release.ts` con el número del PR de la
+   entrega, incluso documental. Es el respaldo para builds sin metadatos Git de
+   Vercel; el número visible debe identificar la compilación, no el último PR abierto.
+5. Informar qué cambió, qué se probó y qué falta. Si falla una herramienta,
    conservar un relevo explícito, sin afirmar que el push o PR se completó.
-5. El siguiente agente vuelve a comprobar GitHub y continúa desde la rama y el
+6. El siguiente agente vuelve a comprobar GitHub y continúa desde la rama y el
    estado reales. Los chats y los cambios locales no se comparten automáticamente.

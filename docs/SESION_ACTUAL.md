@@ -1,34 +1,33 @@
-# Sesión actual — versión visible de la app
+# Sesión actual — versión con número de PR
 
 Fecha: 24/10/2026. Responsable: Codex.
-Solicitud: poder identificar la versión que se está mostrando tras un despliegue.
+Corrección solicitada por el propietario: mostrar el número de PR, no hashes.
 Rama: `feat/version-visible`, base main `2a23f326c3d6fdb83326359129cd04304a495eaf`.
-PR #8 ya fusionado por el propietario. Esta entrega espera revisión; no hacer merge.
+PR: [#9](https://github.com/GutierrezFranco/calculadora/pull/9), abierto; se actualiza el mismo PR.
+No hacer merge sin autorización.
 
 ## Cambio y alcance
 
-- `next.config.ts`: SHA del commit de Vercel fijado durante la compilación.
-- `src/components/app-header.tsx`: identificador corto visible bajo el logo,
-  SHA completo en title, alternativas explícitas local/sin identificar.
-- Documentos de coordinación actualizados; AGENTS.md intacto.
-- No cambios en Supabase, migraciones, configuración productiva, recargas
-  automáticas ni funcionalidades de negocio. El indicador identifica código,
-  no el estado de la base ni la existencia de una actualización posterior.
+- Encabezado: **Versión PR #9**, visible también en celular. Sin hash ni campo técnico.
+- Número fijado durante build desde metadatos Vercel del PR o mensaje de merge/squash.
+- `src/domain/release.ts` centraliza resolución y respaldo de esta entrega (#9).
+- AGENTS.md exige mantener el respaldo en futuras entregas. Bloque Next.js intacto.
+- Sin consultas periódicas, tokens, nuevas dependencias ni cambios de Supabase.
+  El número identifica código compilado; no asegura que una migración esté aplicada.
 
 ## Validación
 
-- TypeScript, ESLint (src y next.config.ts), 72 pruebas de dominio y build con
-  Webpack aprobados. Mismo límite de Turbopack del entorno de sesiones anteriores.
-- Navegador contra build de producción local: versión exacta y title completo
-  con SHA de prueba. Layout con estilos comprobado en servidor de desarrollo,
-  pantalla Operaciones a 390 y 1440 px, etiqueta de 10 px y sin overflow horizontal.
-  Autenticación local simulada; no se usó una cuenta productiva ni se modificaron registros.
-- Diff y enlaces locales comprobados. Sin pruebas nuevas que repliquen este texto.
+- ESLint (src y config), TypeScript, 77 pruebas de dominio y build Webpack.
+- Casos de preview, merge de main, squash, referencias incidentales a otro PR y
+  ausencia de metadatos cubiertos por cinco pruebas nuevas.
+- Build con mensaje simulado PR #12: configuración compilada debe conservar 12;
+  desarrollo sin metadatos muestra PR #9. Verificación de encabezado a 390/1440 px
+  en Operaciones con Auth local simulado. Sin cuentas o escrituras productivas.
+- Diff, enlaces y bloque Next.js comprobados antes de entregar.
 
-Siguiente paso: revisar el PR de esta rama. Después del merge/despliegue, el SHA
-corto bajo MDM OS permite reconocer la compilación mostrada. Recargar una pestaña
-antigua después de guardar cambios. No hay notificación automática de actualizaciones.
-El HEAD vigente se resuelve en el PR o con git rev-parse HEAD.
+Siguiente paso: revisar y fusionar PR #9 cuando el propietario lo autorice.
+Después del despliegue/recarga mostrará el número del PR de esa compilación.
+El HEAD de esta actualización se consulta en el PR o con git rev-parse HEAD.
 
 ---
 
