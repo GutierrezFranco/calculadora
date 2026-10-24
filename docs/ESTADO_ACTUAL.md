@@ -2,7 +2,7 @@
 
 Actualizado: 24/10/2026 (America/Buenos_Aires).
 Repositorio: `GutierrezFranco/calculadora`.
-Base funcional inspeccionada: `main` en `91f48d8ae78a4b1bc6b5974d2aea6e3d9def2f0e`.
+Base inspeccionada para el indicador de versión: `main` en `2a23f326c3d6fdb83326359129cd04304a495eaf` (PR #8 fusionado).
 
 Este documento es el índice vigente de decisiones, evidencia y pendientes.
 [estado.md](estado.md) conserva el registro histórico de construcción;
@@ -13,7 +13,9 @@ Este documento es el índice vigente de decisiones, evidencia y pendientes.
 
 PR #7 fusionado por el propietario y migración productiva autorizada explícitamente
 el 24/10/2026 después del merge. Aplicación terminada y verificada; ver sesión.
-No se autorizaron marketing mensual, IA, integración WhatsApp ni cambios adicionales.
+Solicitud posterior: mostrar la versión actual de la app. Indicador preparado en
+rama `feat/version-visible`; sin merge ni cambios productivos en esta entrega.
+Marketing mensual, IA e integración WhatsApp permanecen fuera del alcance.
 
 ## 2. Estado implementado en la rama de esta entrega
 
@@ -190,3 +192,15 @@ Antes de esta aplicación el registro remoto estaba vacío aunque V1.3 ya exist�
 No volver a ejecutar esta migración ni usar `db push` indiscriminadamente:
 el historial remoto y los nombres locales requieren conciliación previa.
 No se repararon ni marcaron versiones anteriores en esta sesión.
+
+## 8. Versión visible mediante número de PR
+
+El encabezado muestra **Versión PR #9**, sin hashes. El propietario pidió
+explícitamente números de PR comprensibles en lugar de identificadores de commit.
+`next.config.ts` fija el número durante el build: usa el PR de preview o el número
+reconocido en el mensaje de merge de main (merge normal/squash).
+`RELEASE_PR` en `src/domain/release.ts` es el respaldo explícito para builds sin
+metadatos; actualizarlo para cada PR según AGENTS.md. No requiere consultas a GitHub
+ni claves nuevas. Identifica la compilación mostrada, no el último PR abierto ni el
+estado de las migraciones. No fuerza recargas ni descarta formularios abiertos.
+La corrección está en el mismo PR #9, todavía pendiente de merge del propietario.

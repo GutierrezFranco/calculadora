@@ -1,4 +1,37 @@
-# Sesión actual — aplicación productiva V1.4
+# Sesión actual — versión con número de PR
+
+Fecha: 24/10/2026. Responsable: Codex.
+Corrección solicitada por el propietario: mostrar el número de PR, no hashes.
+Rama: `feat/version-visible`, base main `2a23f326c3d6fdb83326359129cd04304a495eaf`.
+PR: [#9](https://github.com/GutierrezFranco/calculadora/pull/9), abierto; se actualiza el mismo PR.
+No hacer merge sin autorización.
+
+## Cambio y alcance
+
+- Encabezado: **Versión PR #9**, visible también en celular. Sin hash ni campo técnico.
+- Número fijado durante build desde metadatos Vercel del PR o mensaje de merge/squash.
+- `src/domain/release.ts` centraliza resolución y respaldo de esta entrega (#9).
+- AGENTS.md exige mantener el respaldo en futuras entregas. Bloque Next.js intacto.
+- Sin consultas periódicas, tokens, nuevas dependencias ni cambios de Supabase.
+  El número identifica código compilado; no asegura que una migración esté aplicada.
+
+## Validación
+
+- ESLint (src y config), TypeScript, 77 pruebas de dominio y build Webpack.
+- Casos de preview, merge de main, squash, referencias incidentales a otro PR y
+  ausencia de metadatos cubiertos por cinco pruebas nuevas.
+- Build con mensaje simulado PR #12: configuración compilada debe conservar 12;
+  desarrollo sin metadatos muestra PR #9. Verificación de encabezado a 390/1440 px
+  en Operaciones con Auth local simulado. Sin cuentas o escrituras productivas.
+- Diff, enlaces y bloque Next.js comprobados antes de entregar.
+
+Siguiente paso: revisar y fusionar PR #9 cuando el propietario lo autorice.
+Después del despliegue/recarga mostrará el número del PR de esa compilación.
+El HEAD de esta actualización se consulta en el PR o con git rev-parse HEAD.
+
+---
+
+# Registro anterior — aplicación productiva V1.4
 
 Fecha: 24/10/2026 (UTC). Responsable: Codex.
 Estado: PR #7 fusionado por el propietario; migración productiva aplicada y verificada.

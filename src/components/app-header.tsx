@@ -30,7 +30,10 @@ export function AppHeader({ user, businessId }: { user: CurrentUser; businessId?
       <header className={dark ? "bg-ink text-white" : "border-b border-line bg-white"}>
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 sm:px-6">
           <Link href="/" className="text-lg font-extrabold">
-            MDM OS{dark && <span className="ml-1 text-sm font-medium opacity-75">· Mentor</span>}
+            <span>MDM OS{dark && <span className="ml-1 text-sm font-medium opacity-75">· Mentor</span>}</span>
+            <span className="block text-[10px] font-normal leading-tight opacity-65" title="Actualización incluida en esta versión de la app">
+              Versión PR #{process.env.MDM_RELEASE_PR}
+            </span>
           </Link>
           <nav aria-label="Secciones" className="order-last -mx-4 flex w-[calc(100%+2rem)] gap-1 overflow-x-auto whitespace-nowrap px-4 pb-1 text-sm sm:order-none sm:mx-0 sm:w-auto sm:flex-1 sm:flex-wrap sm:px-0 sm:pb-0">
             {user.isMentor && (
