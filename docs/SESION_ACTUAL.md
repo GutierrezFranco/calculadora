@@ -1,7 +1,7 @@
 # Sesión actual — V1.4 etapa 1: clientes y operaciones
 
 Fecha: 24/10/2026. Responsable: Codex.
-Estado: implementado en rama independiente; pendiente revisión del PR. No hacer merge.
+Estado: implementado; [PR #7](https://github.com/GutierrezFranco/calculadora/pull/7) abierto, pendiente revisión. No hacer merge.
 
 ## Alcance autorizado
 
@@ -15,7 +15,8 @@ IA, integración/lectura de WhatsApp, merge ni cambios en Supabase/Vercel produc
 - Rama: `feature/v14-clientes-operaciones`.
 - Main verificado al iniciar y antes de entrega:
   `91f48d8ae78a4b1bc6b5974d2aea6e3d9def2f0e` (merge de #6).
-- PR: consultar el PR abierto de esta rama contra main; se registrará el enlace al publicar.
+- PR: [#7](https://github.com/GutierrezFranco/calculadora/pull/7), abierto contra main.
+- Commit funcional verificado: `ee087d7ac5e579d7cc31684f817241757bc29e9a`.
 - El commit de esta entrega incluye el relevo: resolver su SHA con `git rev-parse HEAD`
   o en el PR; no es posible incluir el SHA de este mismo commit en su contenido.
 - Checkout completo y dependencias instaladas; no se tocaron cambios de Claude.
