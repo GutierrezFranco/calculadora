@@ -1,7 +1,7 @@
 # MDM OS — Revisión de la especificación v1.1
 
 Revisión técnica de `especificacion-funcional-v1.1.md` antes de empezar a construir la V1A.
-Las respuestas a las preguntas de la sección 4 se van a ir anotando acá.
+Las decisiones tomadas están en la sección 4.
 
 ## 1. ¿Se puede hacer?
 
@@ -11,7 +11,7 @@ Las respuestas a las preguntas de la sección 4 se van a ir anotando acá.
 | V1B — Decisiones y captación | Sí | Proyecciones, semáforos, CSV y snapshots manuales. Solo depende de definir bien las fórmulas. |
 | V1C — Instagram / Meta Ads | Sí, con trámite | APIs oficiales de Meta: requieren cuenta profesional, app aprobada por Meta (App Review) y renovar tokens. Métricas por reel limitadas, como ya dice el documento. |
 | V1C — IA con clave Anthropic del alumno | Sí | Clave cifrada en servidor y salida JSON validada por esquema. Es directo. |
-| V1C — WhatsApp por QR | No recomendado | Conectarse por QR usa librerías no oficiales (WhatsApp Web) que violan los términos de WhatsApp y pueden hacer que le **bloqueen el número al alumno**. La API oficial (WhatsApp Business Cloud API) no lee el historial ni el WhatsApp personal o Business común. Alternativa segura: que el alumno use "Exportar chat" (archivo .txt) y lo suba. |
+| V1C — WhatsApp por QR | Sí, con riesgo aceptado | Usa la conexión de WhatsApp Web (como Funnel Chat y el CRM existente), solo lectura. No es oficial: WhatsApp puede bloquear números que detecte. Decisión de Franco: se hace (ver sección 4). |
 
 ## 2. Arquitectura propuesta (a confirmar)
 
@@ -36,8 +36,36 @@ Las respuestas a las preguntas de la sección 4 se van a ir anotando acá.
 11. **Suscripción:** cobrar la suscripción no está en V1A. Mientras tanto, ¿el acceso lo activa y desactiva el mentor a mano?
 12. **Versión del documento:** el archivo dice v1.1 en el nombre y v1.0 en el título.
 
-## 4. Preguntas abiertas
+## 4. Decisiones tomadas (24/10/2026)
 
-Ver la lista numerada en la conversación de inicio del proyecto. Respuestas:
+Respuestas de Franco a la primera ronda de preguntas. Mandan sobre la especificación donde la contradicen.
 
-- _(pendiente)_
+| Tema | Decisión |
+|---|---|
+| WhatsApp por QR | **Se hace**, solo lectura, como en el CRM existente que reemplazó a Funnel Chat. Queda en V1C. El riesgo de bloqueo del número es una decisión aceptada. |
+| Etapas | *Presupuesto aceptado / reservado* y *Señado* son la misma etapa: **Señado** (seña sin compromiso firme, no es ganado). Flujo: Nueva consulta → Presupuestado → En seguimiento → Señado → Ganado / en reparación → Ganado / completado, con Perdido como salida manual. |
+| Ganado | El cliente acepta la reparación completa y **deja el equipo**, normalmente pagando el 50 %. Es venta ganada con cobro parcial. |
+| Seña de un cliente que no sigue | Lo define cada negocio. Por defecto **no se devuelve** (costumbre en Argentina), pero se puede registrar una devolución. La seña retenida suma a cobrado, no a ventas, y se muestra aparte como "Señas retenidas". |
+| Venta rápida | Se carga directo como ganada y cobrada, sin pasar por las etapas. |
+| Costo directo faltante | La contribución queda "Sin datos" si ninguna venta tiene costo; si faltan algunos, se avisa cuántas. |
+| Fecha de una venta | Cuenta en el período en que **se ganó** (consulta de marzo ganada en abril = venta de abril). |
+| Tarjeta Clientes | Personas distintas con al menos una venta ganada en el período. Una persona con dos reparaciones es 1 cliente y 2 ventas. |
+| Ticket promedio | Se muestran dos: **pactado** y **cobrado**. |
+| Carga de consultas | El alumno carga el **total diario** de consultas (más adelante, detectado desde WhatsApp). Las oportunidades se crean solo para las que avanzan. Si un día no tiene total cargado, se cuentan las oportunidades creadas ese día. Nunca se suman ambos. |
+| Dispositivos | Celular, tablet y compu. El kanban se diseña para escritorio y en celular se adapta con columnas deslizables. |
+| Monedas | Cada negocio elige su moneda (ARS, CLP, GTQ...) y su cotización contra el dólar. Puede mezclar moneda local y USD. Los totales se muestran por moneda y se convierten solo con cotización explícita. |
+| Mentores | Un solo mentor (Franco). Varios mentores queda para más adelante. |
+| Acceso de alumnos | El mentor activa y desactiva alumnos desde su panel. |
+| Importación | Se adelanta a V1A: **importación guiada** de Excel/CSV/reportes de otros sistemas, con mapeo de columnas propuesto y confirmación del alumno antes de guardar. |
+| Stack | Next.js + Supabase + Vercel. |
+
+### Supuestos que tomé y conviene confirmar
+
+- **Venta revertida:** desaparece del período en que se ganó (los números muestran la situación actual), la devolución de plata cuenta en la fecha en que se devolvió, y la auditoría conserva el original.
+- **Cobro en otra moneda que la venta** (venta en pesos cobrada en dólares): por ahora no descuenta el saldo pendiente hasta definir qué cotización usar.
+
+## 5. Preguntas abiertas
+
+1. ¿Cuál es el repo del CRM con WhatsApp por QR? ¿MDM OS lo **reemplaza**, se **conecta** a él, o reusamos su conector?
+2. Cotización del dólar: ¿una sola por negocio que el alumno actualiza a mano, o una por cada cobro/venta (la del día)?
+3. Login de alumnos: ¿email y contraseña, link mágico por email, o Google?
