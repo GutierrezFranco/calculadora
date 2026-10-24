@@ -11,14 +11,13 @@ Este documento es el índice vigente de decisiones, evidencia y pendientes.
 
 ## 1. Autorización actual
 
-PR #6 fusionado y primera etapa funcional autorizada explícitamente:
-clientes y operaciones, migración y pruebas locales, rama y PR independientes.
-No hacer merge. No mutar Supabase/Vercel productivos ni iniciar marketing mensual,
-IA o integración WhatsApp.
+PR #7 fusionado por el propietario y migración productiva autorizada explícitamente
+el 24/10/2026 después del merge. Aplicación terminada y verificada; ver sesión.
+No se autorizaron marketing mensual, IA, integración WhatsApp ni cambios adicionales.
 
 ## 2. Estado implementado en la rama de esta entrega
 
-Rama `feature/v14-clientes-operaciones`, basada en main `91f48d8`.
+Implementación fusionada en main `8f8a59ef2a0709bcb1c265140aba5fd2c946b9cf`.
 Ver [contrato, límites y recorrido de prueba](clientes-operaciones-v1-4.md).
 
 | Área | Implementado | Evidencia |
@@ -29,7 +28,7 @@ Ver [contrato, límites y recorrido de prueba](clientes-operaciones-v1-4.md).
 | Duplicados/aislamiento | Solicitud idempotente, teléfono/referencia, revisión de similitudes, RLS/FKs por negocio | SQL, compatibilidad V1.3 |
 | Importación | Circuito V1.3 conservado, ventas generan operación; cobrado vacío permanece desconocido | Regresión SQL; no importación de datos reales |
 | Dashboard/pipeline | Consultas distintas de trabajos, clientes únicos, alertas de datos faltantes; pipeline opcional | 72 pruebas de dominio y navegador de operaciones |
-| Producción | Sin cambios ni validación del despliegue | No aplicar esta migración a producción en esta sesión |
+| Producción | Migración V1.4 aplicada al proyecto mdm-os; esquema, permisos e índices verificados | GitHub confirma despliegue Vercel exitoso; no se probó carga real autenticada en producción |
 
 Se utilizó checkout completo con dependencias. TypeScript, ESLint, build con `--webpack` y suite SQL
 local ejecutados; ver detalle y limitaciones del entorno en [sesión](SESION_ACTUAL.md).
@@ -169,7 +168,7 @@ No se cargó el archivo real de Facu ni se inventaron importes.
 | Orden | Entrega | Estado |
 |---|---|---|
 | 0 | Protocolo documental y PR de estos tres archivos | PR #6 fusionado |
-| 1 | Clientes y operaciones: selección/creación, historial, vínculos 1:N y origen sencillo; históricos parciales | Implementado en rama independiente; pendiente revisión/merge autorizado |
+| 1 | Clientes y operaciones: selección/creación, historial, vínculos 1:N y origen sencillo; históricos parciales | PR #7 fusionado; migración productiva aplicada con autorización |
 | 2 | Carga rápida/onboarding, marketing por período, adaptación de importación y dashboard | Diseño aprobado; dividir y autorizar cada incremento |
 | Posterior | IA y conectores | Fuera de esta etapa |
 
@@ -181,3 +180,13 @@ regresión de cohortes, monedas, ventas directas y devoluciones.
 
 Para comandos y disciplina de validación, ver [AGENTS.md](../AGENTS.md).
 No usar este listado como autorización para empezar esas tareas.
+
+## 7. Historial productivo y precaución para el próximo agente
+
+Aplicada `v14_clientes_operaciones` mediante Supabase MCP el 24/10/2026.
+Versión remota asignada: `20261024215117`; archivo fuente aprobado:
+`supabase/migrations/20261026000000_v14_clientes_operaciones.sql`.
+Antes de esta aplicación el registro remoto estaba vacío aunque V1.3 ya existía.
+No volver a ejecutar esta migración ni usar `db push` indiscriminadamente:
+el historial remoto y los nombres locales requieren conciliación previa.
+No se repararon ni marcaron versiones anteriores en esta sesión.

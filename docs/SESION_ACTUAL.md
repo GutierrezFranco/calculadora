@@ -1,83 +1,58 @@
-# Sesión actual — V1.4 etapa 1: clientes y operaciones
+# Sesión actual — aplicación productiva V1.4
 
-Fecha: 24/10/2026. Responsable: Codex.
-Estado: implementado; [PR #7](https://github.com/GutierrezFranco/calculadora/pull/7) abierto, pendiente revisión. No hacer merge.
+Fecha: 24/10/2026 (UTC). Responsable: Codex.
+Estado: PR #7 fusionado por el propietario; migración productiva aplicada y verificada.
 
-## Alcance autorizado
+## Autorización y referencias
 
-El propietario confirmó PR #6 aprobado (main verificado: ya fusionado) y autorizó
-clientes/operaciones, migración y pruebas locales. No autorizó marketing mensual,
-IA, integración/lectura de WhatsApp, merge ni cambios en Supabase/Vercel productivos.
+El propietario autorizó explícitamente aplicar la migración pendiente después de
+confirmar el merge. Alcance: migración V1.4 aprobada y verificaciones; no nuevas
+funcionalidades, datos ficticios en producción ni modificaciones de Vercel.
 
-## Referencias
+- Main verificado: `8f8a59ef2a0709bcb1c265140aba5fd2c946b9cf`.
+- Implementación: [PR #7](https://github.com/GutierrezFranco/calculadora/pull/7), fusionado.
+- Rama de este relevo: `docs/v14-migracion-productiva`; PR documental independiente.
+- Proyecto Supabase: `mdm-os` (`ddjdtoprftxvasajyfzn`), PostgreSQL 17.11.
+- Fuente aplicada sin cambios: `supabase/migrations/20261026000000_v14_clientes_operaciones.sql`.
+- SHA256 de la fuente: `945f129b698a939fc0c715f8765ab9a9c0137c2d33ff7923908208e732f5812e`.
+- Nombre remoto `v14_clientes_operaciones`, versión asignada por MCP `20261024215117`.
 
-- Repositorio: `GutierrezFranco/calculadora`.
-- Rama: `feature/v14-clientes-operaciones`.
-- Main verificado al iniciar y antes de entrega:
-  `91f48d8ae78a4b1bc6b5974d2aea6e3d9def2f0e` (merge de #6).
-- PR: [#7](https://github.com/GutierrezFranco/calculadora/pull/7), abierto contra main.
-- Commit funcional verificado: `ee087d7ac5e579d7cc31684f817241757bc29e9a`.
-- El commit de esta entrega incluye el relevo: resolver su SHA con `git rev-parse HEAD`
-  o en el PR; no es posible incluir el SHA de este mismo commit en su contenido.
-- Checkout completo y dependencias instaladas; no se tocaron cambios de Claude.
+## Ejecución y verificaciones
 
-## Trabajo realizado
+1. Consultados changelog/documentación Supabase, esquema real, índices, historial y
+   asesores antes del cambio. Existía V1.3, no `operations` ni RPC nueva. Historial
+   remoto vacío, por instalación anterior fuera del registro de migraciones.
+2. Clientes, ventas, pagos y oportunidades tenían cero filas. No se extrajeron
+   datos personales ni se crearon fixtures o cuentas de prueba en producción.
+3. Aplicada únicamente la migración aprobada desde origin/main con `apply_migration`.
+   Respuesta: `success: true`. Sin reset, reinstalación integral ni otras migraciones.
+4. Comprobados tabla/RPC, RLS activo, políticas SELECT/INSERT/UPDATE para autenticados,
+   permisos de lectura/ejecución, RPC denegada a anon, índice único por operación y
+   retiro del anterior por oportunidad. Trigger de inmutabilidad de pagos habilitado.
+   Conteos posteriores: clientes/ventas/pagos/operaciones siguen en cero.
+5. Consultado historial: una sola entrada V1.4. No aplicar nuevamente ni ejecutar
+   db push hasta conciliar historial remoto vs nombres/versiones del repositorio.
+6. GitHub confirma deployment Vercel exitoso para el SHA fusionado. La API Vercel
+   del conector devolvió 403 por falta de acceso al equipo; no se modificó su
+   configuración ni se crearon despliegues. No se verificó sesión productiva.
+7. Asesores después del cambio: mismas advertencias preexistentes, ninguna nueva:
+   dos RPC SECURITY DEFINER accesibles para usuarios autenticados y protección de
+   contraseñas filtradas deshabilitada. No se cambió Auth ni funciones fuera del alcance.
+   Referencias: [funciones privilegiadas](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable),
+   [protección de contraseñas](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
 
-- Tabla `operations` asociada a contactos existentes, consulta opcional 1:N y
-  vínculos a ventas/pagos V1.3. Backfill de ventas sin nuevas consultas.
-- RPC transaccional, idempotencia, versiones, comprobaciones de duplicados,
-  RLS/FKs por negocio, estados separados y datos desconocidos preservados.
-- Registrar con cliente nuevo/existente y detalles opcionales. Guardar y cargar otra;
-  listado, edición, historial del cliente, cobros/devoluciones por trabajo.
-- Métricas y pipeline adaptados para varias operaciones por consulta, sin duplicar
-  consultas, clientes o pagos. Alertas por precio/costo/cobro/fecha desconocidos.
-- Importación existente conservada y cobrado vacío corregido. No se importaron
-  datos reales. Limitaciones del parser/estados y otros pendientes siguen documentados.
-- Bloque Next.js de AGENTS.md conservado íntegro.
+## Relevo
 
-Archivos principales: `src/app/negocio/[id]/operaciones/`, `cargar/page.tsx`,
-`contactos/`, `pipeline/[opp]/page.tsx`, `src/components/app-header.tsx`,
-`src/domain/{operations,metrics,cohort,funnel,funnels,quality,sources,types,import}.ts`,
-`src/lib/{data,pipeline-data}.ts`, acciones de carga y preview de importación.
-Migración: `supabase/migrations/20261026000000_v14_clientes_operaciones.sql`;
-instalador generado con `scripts/build-install-sql.sh`. Pruebas: dominio,
-`tests/db/v14.test.sql`, regresión de deshacer importación, `tests/e2e/operaciones.mjs`
-y selectores de carga actualizados en e2e V1A/V1.3.
+Siguiente paso funcional: el propietario entra con su cuenta y prueba Registrar →
+cliente → trabajo → Guardar y cargar otra → Operaciones/historial.
+No se añadieron datos de Facu ni se ejecutó una carga productiva de prueba.
+No iniciar marketing mensual, IA ni WhatsApp sin autorización.
 
-## Validación ejecutada
+El PR #7 conserva la evidencia local: 72 pruebas de dominio, TypeScript, ESLint,
+build Webpack, suite SQL y navegador 390/1440 px con Auth simulado. Sigue pendiente
+la suite completa e2e con Supabase Auth real; la aplicación de la migración no la sustituye.
+Guía: [clientes-operaciones-v1-4.md](clientes-operaciones-v1-4.md).
 
-- `npm test`: 72 pruebas, 11 archivos, aprobados.
-- `npx tsc --noEmit`: aprobado.
-- `npx eslint src`: aprobado.
-- `npm run build -- --webpack`: aprobado. El comando predeterminado con Turbopack
-  quedó bloqueado por restricciones de creación de procesos/puertos del entorno;
-  no se cambió el bundler predeterminado del proyecto.
-- `npm run test:db` sobre PostgreSQL 18.4 local, con herramientas cliente 17:
-  suite completa aprobada, instalación vacía, migración sobre datos existentes e
-  igualdad del instalador. No usa una base remota.
-- SQL verifica 1 cliente/1 consulta/2 trabajos, sin consulta ficticia, históricos
-  NULL, reintentos, coincidencias, cancelación/devolución independiente, versiones,
-  fusión, importación vs venta manual, cobrado vacío y aislamiento/RLS.
-- `node tests/e2e/operaciones.mjs`: aprobado en Chromium 390×900 y 1440×1000,
-  con app Next, PostgREST 16.5 y PostgreSQL locales. Auth fue **simulado** por un
-  gateway temporal fuera del repo. Prueba cliente nuevo reutilizado, 3 trabajos,
-  2 sobre una consulta real, edición, dashboard, historial y sin overflow horizontal.
-- `git diff --check`: aprobado. Enlaces locales y bloque Next.js verificados.
-
-Limitación de entorno: `supabase start` no pudo completar descarga/arranque por
-límites del registro Docker y espacio del daemon. No se ejecutó la suite completa
-`npm run test:e2e` con Supabase Auth real. Los scripts quedan preparados; repetirlos
-con Supabase local antes de homologar el flujo integral de autenticación.
-Los servicios/herramientas y fixtures de prueba son temporales, ficticios y locales;
-no están incluidos en la entrega ni reemplazan configuración de producción.
-
-## Relevo y cómo probar
-
-Guía concreta, contrato y limitaciones: [clientes-operaciones-v1-4.md](clientes-operaciones-v1-4.md).
-Estado vigente: [ESTADO_ACTUAL.md](ESTADO_ACTUAL.md).
-
-Siguiente paso: revisar este PR, repetir e2e con Supabase local completo y probar
-Registrar → Guardar y cargar otra → Operaciones → Historial del cliente.
-No aplicar la migración en producción, no desplegar, no fusionar ni iniciar la
-siguiente etapa sin autorización. El siguiente agente debe comprobar el HEAD/PR
-real antes de trabajar, leer AGENTS.md y estos documentos.
+Este PR modifica solo documentación. Validaciones: diff --check, enlaces locales y
+AGENTS.md intacto; no se repitieron suites de aplicación por este relevo documental.
+El SHA de este mismo commit se resuelve en el PR o con git rev-parse HEAD.
