@@ -1,7 +1,8 @@
-import { eachDay, instantInPeriod, localDate } from "./dates";
+import { cohortResult, countInquiries, inquiryCohort, salesBreakdown, type CohortResult, type SalesBreakdown } from "./cohort";
+import { eachDay, instantInPeriod } from "./dates";
 import { addTo, convert, type MoneyTotals } from "./money";
 import { amountRefunded, effectiveSaleAmount } from "./pipeline";
-import type { BusinessData, InquiryTally, LocalDate, Period } from "./types";
+import type { BusinessData, Period } from "./types";
 
 /**
  * Métricas de un período. `null` significa "Sin datos": nunca se reemplaza
@@ -11,8 +12,10 @@ export interface PeriodMetrics {
   period: Period;
   consultasCalificadas: number | null;
   oportunidadesCreadas: number | null;
-  /** Ventas vigentes cuyo cierre fue dentro del período. */
+  /** Ventas vigentes cuyo cierre fue dentro del período (incluye ventas directas). */
   ventasGanadas: number | null;
+  /** Las mismas ventas, separadas en de la cohorte, de cohortes anteriores y directas. */
+  ventas: SalesBreakdown | null;
   /** Personas distintas con al menos una venta ganada en el período. */
   clientes: number | null;
   facturacionPactada: MoneyTotals | null;
@@ -22,14 +25,12 @@ export interface PeriodMetrics {
   saldoPendiente: MoneyTotals | null;
   /** Venta pactada − costo directo − costos variables, solo de ventas con costo cargado. */
   contribucion: { totals: MoneyTotals; ventasSinCosto: number } | null;
-  tasaCierre: {
-    /** ganadas / (ganadas + perdidas); null si no hubo oportunidades decididas. */
-    ratio: number | null;
-    ganadas: number;
-    perdidas: number;
-    /** Abiertas al cierre del período: no cuentan como pérdida. */
-    pendientes: number;
-  } | null;
+  /**
+   * Cierre de la cohorte: de las consultas identificadas que entraron en el período, cuántas
+   * se ganaron hasta hoy. Las pendientes están en el denominador; la cobertura dice qué
+   * parte de las consultas recibidas está identificada.
+   */
+  tasaCierre: CohortResult | null;
   ticketPactado: MoneyTotals | null;
   /** Cobrado hasta hoy sobre las ventas ganadas en el período, dividido por esas ventas. */
   ticketCobrado: MoneyTotals | null;
@@ -42,6 +43,7 @@ const EMPTY: Omit<PeriodMetrics, "period" | "avisos"> = {
   consultasCalificadas: null,
   oportunidadesCreadas: null,
   ventasGanadas: null,
+  ventas: null,
   clientes: null,
   facturacionPactada: null,
   cobrado: null,
@@ -84,35 +86,8 @@ export function computeMetrics(data: BusinessData, period: Period): PeriodMetric
     reversedInPeriod;
   if (!hasData) return { period, ...EMPTY, avisos: ["Sin datos para este período"] };
 
-  // Consultas: el total diario cargado manda sobre las oportunidades de ese día,
-  // así no se cuentan dos veces cuando coexisten ambos registros.
-  // Si un día tiene totales de varias fuentes, manda el manual, después el importado
-  // y por último el detectado desde WhatsApp: nunca se suman entre sí.
-  const priority: Record<InquiryTally["method"], number> = { manual: 0, importado: 1, whatsapp: 2 };
-  const chosen = new Map<LocalDate, InquiryTally>();
-  for (const t of periodTallies) {
-    const current = chosen.get(t.date);
-    if (!current || priority[t.method] < priority[current.method]) chosen.set(t.date, t);
-  }
-  const talliesByDay = new Map<LocalDate, number>([...chosen].map(([day, t]) => [day, t.count]));
-  const oppsByDay = new Map<LocalDate, number>();
-  for (const o of createdOpps) {
-    const day = localDate(o.createdAt, tz);
-    oppsByDay.set(day, (oppsByDay.get(day) ?? 0) + 1);
-  }
-  let consultas = 0;
-  for (const day of days) {
-    const tally = talliesByDay.get(day);
-    const opps = oppsByDay.get(day) ?? 0;
-    if (tally === undefined) {
-      consultas += opps;
-    } else {
-      consultas += tally;
-      if (opps > tally) {
-        avisos.push(`${day}: hay ${opps} oportunidades creadas pero el total cargado es ${tally}`);
-      }
-    }
-  }
+  const inquiries = countInquiries(data, period);
+  avisos.push(...inquiries.avisos);
 
   const facturacion: MoneyTotals = {};
   const salesPerCurrency: Partial<Record<string, number>> = {};
@@ -158,36 +133,21 @@ export function computeMetrics(data: BusinessData, period: Period): PeriodMetric
     }
   }
 
-  // Pendientes: creadas hasta el fin del período y sin decidir a esa fecha.
-  const decidedBy = (instant: string | null | undefined) =>
-    instant !== null && instant !== undefined && localDate(instant, tz) <= period.to;
-  const saleByOpp = new Map(data.sales.filter((s) => s.status === "vigente").map((s) => [s.opportunityId, s]));
-  const pendientes = data.opportunities.filter((o) => {
-    if (localDate(o.createdAt, tz) > period.to) return false;
-    if (decidedBy(saleByOpp.get(o.id)?.wonAt)) return false;
-    return !(o.stage === "perdido" && decidedBy(o.lostAt));
-  }).length;
-
   const ganadas = wonSales.length;
-  const perdidas = lostOpps.length;
   const hayContribucion = ganadas === 0 || ventasSinCosto < ganadas;
 
   return {
     period,
-    consultasCalificadas: consultas,
+    consultasCalificadas: inquiries.total,
     oportunidadesCreadas: createdOpps.length,
     ventasGanadas: ganadas,
+    ventas: salesBreakdown(data, period),
     clientes: new Set(wonSales.map((s) => s.contactId)).size,
     facturacionPactada: facturacion,
     cobrado,
     saldoPendiente: saldo,
     contribucion: hayContribucion ? { totals: contribucion, ventasSinCosto } : null,
-    tasaCierre: {
-      ratio: ganadas + perdidas > 0 ? ganadas / (ganadas + perdidas) : null,
-      ganadas,
-      perdidas,
-      pendientes,
-    },
+    tasaCierre: cohortResult(inquiryCohort(data, period), data, inquiries.total),
     ticketPactado: ganadas > 0 ? divideTotals(facturacion, salesPerCurrency) : null,
     ticketCobrado: ganadas > 0 ? divideTotals(cobradoSobreVentas, salesPerCurrency) : null,
     senasRetenidas: senas,

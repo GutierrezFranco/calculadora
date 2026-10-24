@@ -1,15 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { diagnose, mentorAlerts, type DiagnosisInput } from "./diagnosis";
+import type { CohortResult } from "./cohort";
 import type { PeriodMetrics } from "./metrics";
+
+const cohort = (ganadas: number, perdidas: number, pendientes: number, recibidas = 100): CohortResult => {
+  const identificadas = ganadas + perdidas + pendientes;
+  return { recibidas, identificadas, ganadas, perdidas, pendientes, cancelaciones: 0, ratio: identificadas ? ganadas / identificadas : null, cobertura: Math.min(identificadas / recibidas, 1) };
+};
 
 const period = { from: "2026-04-01", to: "2026-04-30" };
 
 function metrics(over: Partial<PeriodMetrics> = {}): PeriodMetrics {
   return {
-    period, consultasCalificadas: 100, oportunidadesCreadas: 40, ventasGanadas: 20, clientes: 18,
+    period, consultasCalificadas: 100, oportunidadesCreadas: 40, ventasGanadas: 20, ventas: { total: 20, deLaCohorte: 15, deCohortesAnteriores: 5, directas: 0 }, clientes: 18,
     facturacionPactada: { ARS: 2_000_000_00 }, cobrado: { ARS: 1_900_000_00 }, saldoPendiente: { ARS: 100_000_00 },
     contribucion: { totals: { ARS: 1_000_000_00 }, ventasSinCosto: 0 },
-    tasaCierre: { ratio: 0.5, ganadas: 20, perdidas: 20, pendientes: 10 },
+    tasaCierre: cohort(40, 35, 5, 100),
     ticketPactado: { ARS: 100_000_00 }, ticketCobrado: { ARS: 95_000_00 }, senasRetenidas: {}, avisos: [], ...over,
   };
 }
@@ -41,7 +47,7 @@ describe("diagnóstico", () => {
   it("detecta cuellos de botella con datos suficientes, los más graves primero", () => {
     const result = diagnose({
       ...base,
-      metrics: metrics({ consultasCalificadas: 60, tasaCierre: { ratio: 0.2, ganadas: 4, perdidas: 16, pendientes: 30 } }),
+      metrics: metrics({ consultasCalificadas: 60, tasaCierre: cohort(4, 16, 30, 60) }),
       funnel: funnel(40, 10),
       daysLoaded: 10,
       overdueFollowUps: 6,
@@ -50,13 +56,24 @@ describe("diagnóstico", () => {
     expect(result).toContain("carga_incompleta");
     expect(result).toContain("muchos_pendientes");
     expect(result).toContain("menos_consultas");
+    // Con 30 de 50 consultas abiertas la cohorte puede subir: no se la compara todavía.
+    expect(result).not.toContain("cierre_bajo_vs_anterior");
+  });
+
+  it("compara el cierre con el período anterior solo cuando la cohorte está casi cerrada", () => {
+    const result = diagnose({ ...base, metrics: metrics({ tasaCierre: cohort(10, 25, 5, 50) }) }).map((f) => f.id);
     expect(result).toContain("cierre_bajo_vs_anterior");
+  });
+
+  it("avisa cuando pocas consultas están cargadas una por una", () => {
+    const result = diagnose({ ...base, metrics: metrics({ tasaCierre: cohort(20, 15, 5, 100) }) }).map((f) => f.id);
+    expect(result).toContain("cobertura_baja");
   });
 
   it("con muestra chica no juzga tasas", () => {
     const result = diagnose({
       ...base,
-      metrics: metrics({ consultasCalificadas: 5, tasaCierre: { ratio: 0, ganadas: 0, perdidas: 3, pendientes: 2 } }),
+      metrics: metrics({ consultasCalificadas: 5, tasaCierre: cohort(0, 3, 2, 5) }),
       previous: metrics({ consultasCalificadas: 6 }),
       funnel: funnel(4, 0),
     }).map((f) => f.id);

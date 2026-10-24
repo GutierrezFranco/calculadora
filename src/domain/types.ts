@@ -53,6 +53,16 @@ export interface Contact {
   name: string | null;
 }
 
+/** consulta: entró como consulta. venta_directa: venta sin consulta previa registrada. */
+export type EntryKind = "consulta" | "venta_directa";
+
+export type LostCategory = "precio" | "sin_respuesta" | "eligio_otro" | "no_reparable" | "cancelacion_tecnica" | "otro";
+
+export type AttributionConfidence = "confirmada" | "declarada" | "inferida";
+
+/** De dónde vino el registro: cargado a mano o por una importación. */
+export type DataChannel = "manual" | "archivo" | "google_sheets" | "conector";
+
 export interface Opportunity {
   id: string;
   businessId: string;
@@ -62,6 +72,13 @@ export interface Opportunity {
   source: LeadSource;
   /** Fecha en que el usuario confirmó la pérdida. */
   lostAt: Instant | null;
+  /** Embudo principal; null o ausente = Sin atribuir. */
+  funnelId?: string | null;
+  attributionConfidence?: AttributionConfidence | null;
+  /** Ausente = consulta (datos anteriores a V1.3). */
+  entryKind?: EntryKind;
+  lostCategory?: LostCategory | null;
+  channel?: DataChannel;
 }
 
 export type SaleStatus = "vigente" | "revertida";
@@ -128,6 +145,48 @@ export interface Period {
   to: LocalDate;
 }
 
+export type StepUnit = "cantidad" | "personas" | "horas" | "dinero";
+
+export interface FunnelStepDef {
+  key: string;
+  label: string;
+  unit: StepUnit;
+}
+
+export interface FunnelVersion {
+  id: string;
+  version: number;
+  validFrom: LocalDate;
+  steps: FunnelStepDef[];
+  notes: string | null;
+}
+
+export type FunnelStatus = "activo" | "pausado" | "archivado";
+
+export interface Funnel {
+  id: string;
+  name: string;
+  /** null = embudo a medida. */
+  templateKey: string | null;
+  channel: LeadSource;
+  status: FunnelStatus;
+  allowsDirectSales: boolean;
+  /** Ordenadas de la más vieja a la más nueva. */
+  versions: FunnelVersion[];
+}
+
+export interface FunnelActivity {
+  id: string;
+  funnelId: string;
+  versionId: string;
+  occurredOn: LocalDate;
+  periodEnd: LocalDate | null;
+  label: string | null;
+  values: Record<string, number>;
+  quality: "real" | "estimado";
+  channel: DataChannel;
+}
+
 /** Todos los registros de un negocio que alimentan las métricas. */
 export interface BusinessData {
   business: Business;
@@ -138,4 +197,6 @@ export interface BusinessData {
   tallies: InquiryTally[];
   /** Oportunidades que recibieron al menos un presupuesto (para el embudo). */
   quotedOpportunityIds?: string[];
+  funnels?: Funnel[];
+  activities?: FunnelActivity[];
 }
