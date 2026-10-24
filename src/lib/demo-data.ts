@@ -20,6 +20,7 @@ export function demoData(today: LocalDate): BusinessData {
       name: "Taller Demo (ficticio)",
       timezone: "America/Argentina/Buenos_Aires",
       currency: "ARS",
+      usdRate: 1_450,
       depositsRefundable: false,
     },
     opportunities: [],
@@ -70,6 +71,7 @@ export function demoData(today: LocalDate): BusinessData {
           variableCosts: null,
           wonAt: at(decidedOn, 12),
           status: "vigente",
+          usdRate: 1_450,
         };
         data.sales.push(sale);
         o.stage = back > 7 ? "ganado_completado" : "ganado_en_reparacion";
@@ -82,6 +84,7 @@ export function demoData(today: LocalDate): BusinessData {
           kind: "anticipo",
           paidAt: at(decidedOn, 12),
           refundsPaymentId: null,
+          usdRate: 1_450,
         };
         data.payments.push(anticipo);
         const saldoOn = addDays(decidedOn, 3);
@@ -102,6 +105,7 @@ export function demoData(today: LocalDate): BusinessData {
           kind: "sena",
           paidAt: at(decidedOn, 15),
           refundsPaymentId: null,
+          usdRate: 1_450,
         });
       } else {
         o.stage = "en_seguimiento";

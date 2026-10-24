@@ -31,6 +31,17 @@ create table public.profiles (
   created_at timestamptz not null default now()
 );
 
+-- Cada cuenta de Supabase Auth tiene su perfil.
+create function app.create_profile() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  insert into public.profiles (id, full_name) values (new.id, new.raw_user_meta_data ->> 'full_name');
+  return new;
+end;
+$$;
+create trigger create_profile after insert on auth.users
+  for each row execute function app.create_profile();
+
 create table public.businesses (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -140,6 +151,8 @@ create table public.sales (
   variable_costs bigint check (variable_costs >= 0),
   won_at timestamptz not null default now(),
   status app.sale_status not null default 'vigente',
+  -- Cotización del negocio al registrar la venta (moneda local por 1 USD).
+  usd_rate numeric(18, 6) check (usd_rate > 0),
   description text,
   foreign key (business_id, opportunity_id) references public.opportunities (business_id, id),
   foreign key (business_id, contact_id) references public.contacts (business_id, id),
@@ -160,6 +173,8 @@ create table public.payments (
   method text,
   paid_at timestamptz not null default now(),
   refunds_payment_id uuid references public.payments (id),
+  -- Cotización del negocio al registrar el cobro (moneda local por 1 USD).
+  usd_rate numeric(18, 6) check (usd_rate > 0),
   foreign key (business_id, opportunity_id) references public.opportunities (business_id, id),
   foreign key (business_id, sale_id) references public.sales (business_id, id),
   check ((kind = 'devolucion') = (refunds_payment_id is not null))
@@ -305,6 +320,21 @@ create trigger guard_payment_update before update on public.payments
 create trigger guard_adjustment_update before update on public.sale_adjustments
   for each row execute function app.guard_immutable();
 
+-- Si no se indica, la venta o el cobro toman la cotización cargada en el negocio en ese momento.
+create function app.snapshot_usd_rate() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if new.usd_rate is null then
+    select b.usd_rate into new.usd_rate from public.businesses b where b.id = new.business_id;
+  end if;
+  return new;
+end;
+$$;
+create trigger snapshot_usd_rate before insert on public.sales
+  for each row execute function app.snapshot_usd_rate();
+create trigger snapshot_usd_rate before insert on public.payments
+  for each row execute function app.snapshot_usd_rate();
+
 -- Una devolución no puede superar lo que queda por devolver del cobro original.
 -- security definer: debe ver el cobro original aunque el usuario no pueda editarlo.
 create function app.guard_refund() returns trigger
@@ -330,10 +360,11 @@ create trigger guard_refund before insert on public.payments
   for each row execute function app.guard_refund();
 
 -- Solo el mentor cambia el estado activo de un negocio o marca mentores.
+-- Sin usuario (editor SQL de Supabase o clave de servicio) se permite, para crear el primer mentor.
 create function app.guard_business_active() returns trigger
 language plpgsql set search_path = '' as $$
 begin
-  if new.active is distinct from old.active and not app.is_mentor() then
+  if new.active is distinct from old.active and auth.uid() is not null and not app.is_mentor() then
     raise exception 'Solo el mentor activa o desactiva negocios';
   end if;
   return new;
@@ -345,7 +376,7 @@ create trigger guard_business_active before update on public.businesses
 create function app.guard_profile_mentor() returns trigger
 language plpgsql set search_path = '' as $$
 begin
-  if new.is_mentor is distinct from old.is_mentor and not app.is_mentor() then
+  if new.is_mentor is distinct from old.is_mentor and auth.uid() is not null and not app.is_mentor() then
     raise exception 'Solo un mentor puede asignar el rol de mentor';
   end if;
   return new;
@@ -355,11 +386,63 @@ create trigger guard_profile_mentor before update on public.profiles
   for each row execute function app.guard_profile_mentor();
 
 -- El mentor registra cada vez que abre el panel de un alumno.
-create function app.log_mentor_access(target uuid, resource text) returns void
+create function public.registrar_acceso_mentor(target uuid, resource text) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
   if not app.is_mentor() then raise exception 'Solo para mentores'; end if;
   insert into public.mentor_access_log (mentor_id, business_id, resource) values (auth.uid(), target, resource);
+end;
+$$;
+
+-- ───────────────────────── Carga rápida ─────────────────────────
+
+-- Venta directa (mostrador, accesorio, reparación ya resuelta): crea contacto si hace
+-- falta, oportunidad ganada, venta y cobro en una sola operación. Corre con los
+-- permisos del usuario, así que las políticas de acceso se aplican igual.
+create function public.registrar_venta_rapida(
+  p_business uuid,
+  p_amount bigint,
+  p_currency text,
+  p_paid bigint,
+  p_description text default null,
+  p_contact_name text default null,
+  p_phone text default null,
+  p_direct_cost bigint default null,
+  p_source text default 'desconocido',
+  p_won_at timestamptz default now()
+) returns uuid
+language plpgsql set search_path = '' as $$
+declare
+  v_contact uuid;
+  v_opp uuid;
+  v_sale uuid;
+begin
+  if p_paid < 0 or p_paid > p_amount then
+    raise exception 'El cobrado tiene que estar entre 0 y el monto de la venta';
+  end if;
+  if nullif(p_phone, '') is not null then
+    select contact_id into v_contact from public.contact_phones
+    where business_id = p_business and phone_e164 = p_phone;
+  end if;
+  if v_contact is null then
+    insert into public.contacts (business_id, name, first_contact_at)
+    values (p_business, nullif(p_contact_name, ''), p_won_at) returning id into v_contact;
+    if nullif(p_phone, '') is not null then
+      insert into public.contact_phones (business_id, contact_id, phone_e164) values (p_business, v_contact, p_phone);
+    end if;
+  end if;
+  insert into public.opportunities (business_id, contact_id, created_at, stage, source, need, last_interaction_at)
+  values (p_business, v_contact, p_won_at, 'ganado_completado', p_source::app.lead_source, p_description, p_won_at)
+  returning id into v_opp;
+  insert into public.sales (business_id, opportunity_id, contact_id, amount, currency, direct_cost, won_at, description)
+  values (p_business, v_opp, v_contact, p_amount, p_currency, p_direct_cost, p_won_at, p_description)
+  returning id into v_sale;
+  if p_paid > 0 then
+    insert into public.payments (business_id, opportunity_id, sale_id, amount, currency, kind, paid_at)
+    values (p_business, v_opp, v_sale, p_paid, p_currency,
+            case when p_paid = p_amount then 'pago_total' else 'anticipo' end::app.payment_kind, p_won_at);
+  end if;
+  return v_sale;
 end;
 $$;
 
@@ -415,5 +498,10 @@ begin
 end;
 $$;
 
-grant usage on schema app to authenticated;
-grant execute on all functions in schema app to authenticated;
+-- service_role (clave secreta) también pasa por los triggers que usan estas funciones.
+grant usage on schema app to authenticated, service_role;
+grant execute on all functions in schema app to authenticated, service_role;
+
+-- Las funciones públicas son solo para usuarios logueados.
+revoke execute on function public.registrar_venta_rapida, public.registrar_acceso_mentor from public, anon;
+grant execute on function public.registrar_venta_rapida, public.registrar_acceso_mentor to authenticated;

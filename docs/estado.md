@@ -2,25 +2,30 @@
 
 Registro de funciones implementadas y pendientes, como pide la sección 14 de la especificación.
 
+Pruebas: `npm test` (reglas comerciales), `npm run test:db` (acceso en la base) y `npm run test:e2e` (flujo completo en el navegador contra Supabase local).
+
 ## V1A — Base confiable
 
 | Función | Estado |
 |---|---|
 | Reglas comerciales (`src/domain`): etapas, ventas, señas, cobros, devoluciones, reversiones | ✅ Hecho, con tests |
 | Cálculo de métricas por período (30/60/90 días y personalizado) con "Sin datos" | ✅ Hecho, con tests |
-| Base de datos: tablas, aislamiento por negocio, auditoría, historial de etapas | ✅ Migración lista y probada en Postgres local |
-| Dashboard del alumno con datos ficticios | ✅ Vista previa sin login |
-| Conexión a Supabase y login | ⏳ Siguiente |
-| Panel del mentor (listado, activar/desactivar, entrar a un negocio) | ⏳ Pendiente |
-| Carga rápida: total diario de consultas, oportunidades, venta rápida, cobros | ⏳ Pendiente |
-| Pipeline kanban (escritorio, adaptado a celular) | ⏳ Pendiente |
+| Base de datos: tablas, aislamiento por negocio, auditoría, historial de etapas | ✅ Probada en Postgres local y en Supabase local |
+| Dashboard del alumno con datos reales (y demo ficticia en `/demo`) | ✅ Hecho |
+| Login con email y contraseña, redirección por rol | ✅ Hecho, probado de punta a punta |
+| Panel del mentor: listado con métricas de 30 días, días cargados, alta de alumnos, activar/desactivar, entrar al negocio con registro de acceso | ✅ Hecho |
+| Carga rápida: total diario de consultas y venta rápida con cobro | ✅ Hecho |
+| Carga de oportunidades, presupuestos, señas y cobros de saldo | ⏳ Siguiente (junto con el pipeline) |
+| Pipeline kanban (escritorio, adaptado a celular) | ⏳ Siguiente |
 | Contactos con teléfonos y fusión de duplicados | ⏳ Pendiente (tablas listas) |
 | Presupuestos | ⏳ Pendiente (tabla lista) |
 | Objetivos | ⏳ Pendiente (tabla lista) |
 | Embudo comprimido en el dashboard | ⏳ Pendiente |
 | Importación guiada de Excel/CSV | ⏳ Pendiente |
 | Exportación | ⏳ Pendiente |
-| Configuración del negocio: moneda, cotización, política de señas | ⏳ Pendiente (campos listos) |
+| Configuración del negocio: moneda, cotización, política de señas | ✅ Hecho |
+| Cotización guardada en cada venta y cobro | ✅ Hecho, con tests |
+| Cambio de contraseña del alumno | ⏳ Pendiente |
 
 ## Criterios de aceptación (sección 12)
 

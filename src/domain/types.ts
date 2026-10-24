@@ -41,6 +41,8 @@ export interface Business {
   name: string;
   timezone: string;
   currency: CurrencyCode;
+  /** Cotización que el alumno carga a mano: moneda local por 1 USD. */
+  usdRate: number | null;
   /** Si es false, la seña de una oportunidad perdida queda retenida por defecto. */
   depositsRefundable: boolean;
 }
@@ -76,6 +78,8 @@ export interface Sale {
   variableCosts: Money | null;
   wonAt: Instant;
   status: SaleStatus;
+  /** Cotización del negocio (moneda local por 1 USD) vigente al registrar la venta. */
+  usdRate: number | null;
 }
 
 export type PaymentKind = "sena" | "anticipo" | "saldo" | "pago_total" | "devolucion";
@@ -92,6 +96,8 @@ export interface Payment {
   paidAt: Instant;
   /** En una devolución, el cobro original que devuelve. */
   refundsPaymentId: string | null;
+  /** Cotización del negocio (moneda local por 1 USD) vigente al registrar el cobro. */
+  usdRate: number | null;
 }
 
 export type AdjustmentKind = "anulacion" | "devolucion_parcial";

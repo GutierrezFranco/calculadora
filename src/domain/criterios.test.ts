@@ -17,6 +17,7 @@ function emptyData(): BusinessData {
       name: "Taller Demo",
       timezone: "America/Argentina/Buenos_Aires",
       currency: "ARS",
+      usdRate: 1_000,
       depositsRefundable: false,
     },
     opportunities: [],
@@ -48,6 +49,7 @@ function win(data: BusinessData, o: Opportunity, pesos: number, wonAt: string, c
     variableCosts: null,
     wonAt,
     status: "vigente",
+    usdRate: 1_000,
   };
   data.sales.push(s);
   return s;
@@ -63,6 +65,7 @@ function pay(data: BusinessData, o: Opportunity, pesos: number, kind: Payment["k
     kind,
     paidAt,
     refundsPaymentId: null,
+    usdRate: 1_000,
   };
   data.payments.push(p);
   return p;
@@ -240,6 +243,17 @@ describe("IA, datos faltantes, períodos y monedas", () => {
     // 30/04 22:00 en Buenos Aires = 01/05 01:00 UTC: es una venta de abril.
     win(data, opp(data, "2026-05-01T01:00:00Z"), 10_000, "2026-05-01T01:00:00Z");
     expect(computeMetrics(data, ABRIL).ventasGanadas).toBe(1);
+  });
+
+  it("venta en pesos cobrada en dólares: descuenta el saldo con la cotización del cobro", () => {
+    const data = emptyData();
+    const o = opp(data, "2026-04-03T14:00:00Z");
+    const s = win(data, o, 100_000, "2026-04-03T15:00:00Z");
+    const p = pay(data, o, 0, "anticipo", "2026-04-03T15:00:00Z", s.id);
+    p.amount = money(5_000, "USD"); // USD 50 a $1.000 = $50.000
+    const m = computeMetrics(data, ABRIL);
+    expect(m.cobrado).toEqual({ USD: 5_000 });
+    expect(m.saldoPendiente).toEqual({ ARS: 5_000_000 });
   });
 
   it("monedas distintas no se suman sin cotización explícita", () => {

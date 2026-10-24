@@ -42,3 +42,15 @@ export function totalsInUsd(
   }
   return Math.round(usd);
 }
+
+/**
+ * Convierte entre la moneda local del negocio y USD con la cotización guardada
+ * en el registro (moneda local por 1 USD). Devuelve null si no se puede.
+ */
+export function convert(value: Money, to: CurrencyCode, usdRate: number | null): Money | null {
+  if (value.currency === to) return value;
+  if (!usdRate) return null;
+  if (value.currency === "USD") return { amount: Math.round(value.amount * usdRate), currency: to };
+  if (to === "USD") return { amount: Math.round(value.amount / usdRate), currency: to };
+  return null;
+}

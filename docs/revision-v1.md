@@ -58,14 +58,14 @@ Respuestas de Franco a la primera ronda de preguntas. Mandan sobre la especifica
 | Acceso de alumnos | El mentor activa y desactiva alumnos desde su panel. |
 | Importación | Se adelanta a V1A: **importación guiada** de Excel/CSV/reportes de otros sistemas, con mapeo de columnas propuesto y confirmación del alumno antes de guardar. |
 | Stack | Next.js + Supabase + Vercel. |
+| WhatsApp por QR (cómo) | Implementación nueva en MDM OS, no se conecta al CRM existente. Se toma el mismo enfoque que ese CRM (repo `ejemplo`, `crm/lib/wa-client.ts`): Baileys como dispositivo vinculado, sesión guardada en la base y reconexión a demanda, sin servidor prendido todo el día. Acá, una sesión por negocio. |
+| Cotización del dólar | Una por negocio, el alumno la actualiza a mano cuando quiere. Cada venta y cada cobro guardan la cotización cargada en ese momento. |
+| Login | Email y contraseña. El mentor crea las cuentas; no hay registro público. Google, más adelante. |
 
 ### Supuestos que tomé y conviene confirmar
 
 - **Venta revertida:** desaparece del período en que se ganó (los números muestran la situación actual), la devolución de plata cuenta en la fecha en que se devolvió, y la auditoría conserva el original.
-- **Cobro en otra moneda que la venta** (venta en pesos cobrada en dólares): por ahora no descuenta el saldo pendiente hasta definir qué cotización usar.
 
 ## 5. Preguntas abiertas
 
-1. ¿Cuál es el repo del CRM con WhatsApp por QR? ¿MDM OS lo **reemplaza**, se **conecta** a él, o reusamos su conector?
-2. Cotización del dólar: ¿una sola por negocio que el alumno actualiza a mano, o una por cada cobro/venta (la del día)?
-3. Login de alumnos: ¿email y contraseña, link mágico por email, o Google?
+- Ninguna bloqueante por ahora.

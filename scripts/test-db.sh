@@ -5,6 +5,6 @@ DB="mdm_os_test_$$"
 cd "$(dirname "$0")/.."
 createdb "$DB"
 trap 'dropdb --if-exists "$DB"' EXIT
-psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/supabase_stub.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f tests/db/supabase_stub.sql
 for f in supabase/migrations/*.sql; do psql -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f"; done
-psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/acceso.test.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f tests/db/acceso.test.sql

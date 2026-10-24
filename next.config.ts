@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
+// Sin Cache Components: casi todas las pantallas dependen del usuario logueado
+// y tienen que mostrar los datos al día.
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
   turbopack: {
     rules: {
       "*.css": {

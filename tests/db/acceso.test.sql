@@ -6,17 +6,15 @@
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
-insert into auth.users values
+-- El perfil se crea solo al crear la cuenta; el primer mentor se marca sin usuario (editor SQL).
+insert into auth.users (id) values
   ('00000000-0000-0000-0000-00000000000a'), -- alumna A
   ('00000000-0000-0000-0000-00000000000b'), -- alumno B
   ('00000000-0000-0000-0000-00000000000f'); -- mentor
-insert into public.profiles (id, full_name, is_mentor) values
-  ('00000000-0000-0000-0000-00000000000a', 'Alumna Demo A', false),
-  ('00000000-0000-0000-0000-00000000000b', 'Alumno Demo B', false),
-  ('00000000-0000-0000-0000-00000000000f', 'Mentor Demo', true);
-insert into public.businesses (id, name) values
-  ('10000000-0000-0000-0000-00000000000a', 'Taller Demo A'),
-  ('10000000-0000-0000-0000-00000000000b', 'Taller Demo B');
+update public.profiles set is_mentor = true where id = '00000000-0000-0000-0000-00000000000f';
+insert into public.businesses (id, name, usd_rate) values
+  ('10000000-0000-0000-0000-00000000000a', 'Taller Demo A', 1450),
+  ('10000000-0000-0000-0000-00000000000b', 'Taller Demo B', null);
 insert into public.memberships values
   ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a'),
   ('10000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000b');
@@ -69,6 +67,7 @@ insert into public.payments (id, business_id, opportunity_id, sale_id, amount, c
   ('50000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000a',
    '30000000-0000-0000-0000-00000000000a', '40000000-0000-0000-0000-00000000000a', 5000000, 'ARS', 'anticipo');
 
+select pg_temp.expect((select usd_rate from public.sales) = 1450, 'la venta guarda la cotización del momento');
 select pg_temp.expect_error($$update public.sales set amount = 1
   where id = '40000000-0000-0000-0000-00000000000a'$$, 'el monto pactado no se edita');
 update public.payments set amount = 1 where id = '50000000-0000-0000-0000-00000000000a';
@@ -85,18 +84,28 @@ select pg_temp.expect_error($$insert into public.stage_history (business_id, opp
 select pg_temp.expect((select count(*) from public.stage_history) = 2, 'los cambios de etapa quedan registrados');
 select pg_temp.expect((select count(*) from public.audit_log where table_name = 'sales') = 1, 'la venta queda en auditoría');
 
+select public.registrar_venta_rapida('10000000-0000-0000-0000-00000000000a', 800000, 'ARS', 800000,
+  'Cargador', 'Cliente mostrador', '+5491100000000');
+select public.registrar_venta_rapida('10000000-0000-0000-0000-00000000000a', 1500000, 'ARS', 500000,
+  'Vidrio', null, '+5491100000000');
+select pg_temp.expect((select count(*) from public.contacts) = 2, 'la venta rápida reusa el contacto por teléfono');
+select pg_temp.expect((select count(*) from public.sales) = 3, 'la venta rápida crea la venta');
+select pg_temp.expect((select count(*) from public.payments where kind = 'anticipo') = 2, 'cobro parcial queda como anticipo');
+select pg_temp.expect_error($$select public.registrar_venta_rapida('10000000-0000-0000-0000-00000000000b', 100, 'ARS', 100)$$,
+  'A no registra ventas en el negocio de B');
+
 -- ── Alumno B ──
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b"}', false);
 select pg_temp.expect((select count(*) from public.sales) = 0, 'B no ve ventas de A');
 select pg_temp.expect((select count(*) from public.audit_log where business_id = '10000000-0000-0000-0000-00000000000a') = 0
   and (select count(*) from public.audit_log) > 0, 'B ve su auditoría y no la de A');
-select pg_temp.expect_error($$select app.log_mentor_access('10000000-0000-0000-0000-00000000000a', 'dashboard')$$,
+select pg_temp.expect_error($$select public.registrar_acceso_mentor('10000000-0000-0000-0000-00000000000a', 'dashboard')$$,
   'B no puede registrarse como mentor');
 
 -- ── Mentor ──
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000f"}', false);
 select pg_temp.expect((select count(*) from public.businesses) = 2, 'el mentor ve todos los negocios');
-select app.log_mentor_access('10000000-0000-0000-0000-00000000000a', 'dashboard');
+select public.registrar_acceso_mentor('10000000-0000-0000-0000-00000000000a', 'dashboard');
 select pg_temp.expect((select count(*) from public.mentor_access_log) = 1, 'el acceso del mentor queda registrado');
 update public.businesses set active = false where id = '10000000-0000-0000-0000-00000000000a';
 

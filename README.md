@@ -11,21 +11,24 @@ Construyendo la V1A. Ver [docs/estado.md](docs/estado.md).
 - [Especificación funcional v1.1](docs/especificacion-funcional-v1.1.md): fuente de requisitos.
 - [Revisión y decisiones](docs/revision-v1.md): viabilidad, arquitectura, decisiones tomadas y preguntas abiertas.
 - [Estado de construcción](docs/estado.md): qué está hecho y qué falta.
+- [Puesta en marcha](docs/puesta-en-marcha.md): cómo publicarla con Supabase y Vercel.
 
 ## Estructura
 
 - `src/domain/`: reglas comerciales y cálculo de métricas, sin dependencias de pantalla ni base de datos.
-- `src/app/`: pantallas (Next.js).
+- `src/app/`: pantallas (Next.js): login, panel del mentor, dashboard, carga y configuración del negocio.
 - `supabase/migrations/`: esquema de base de datos con acceso por negocio y auditoría.
-- `supabase/tests/`: tests de acceso que corren contra un Postgres local.
+- `tests/db/`: tests de acceso que corren contra un Postgres local.
+- `tests/e2e/`: prueba de punta a punta en el navegador.
 
 ## Comandos
 
 ```bash
 npm install
-npm run dev       # app en http://localhost:3000 (con datos ficticios)
+npm run dev       # app en http://localhost:3000 (demo ficticia en /demo)
 npm test          # tests de reglas comerciales
 npm run test:db   # tests de acceso (requiere Postgres local con createdb/psql)
+npm run test:e2e  # flujo completo contra Supabase local (ver docs/puesta-en-marcha.md)
 npm run lint
 npm run build
 ```

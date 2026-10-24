@@ -1,5 +1,5 @@
 import { eachDay, instantInPeriod, localDate } from "./dates";
-import { addTo, type MoneyTotals } from "./money";
+import { addTo, convert, type MoneyTotals } from "./money";
 import { amountRefunded, effectiveSaleAmount } from "./pipeline";
 import type { BusinessData, LocalDate, Period } from "./types";
 
@@ -126,9 +126,17 @@ export function computeMetrics(data: BusinessData, period: Period): PeriodMetric
       ventasSinCosto++;
     }
 
-    const paid = data.payments
-      .filter((p) => p.opportunityId === sale.opportunityId && p.amount.currency === amount.currency)
-      .reduce((sum, p) => sum + (p.kind === "devolucion" ? -p.amount.amount : p.amount.amount), 0);
+    // Un cobro en otra moneda (venta en pesos cobrada en dólares) se convierte
+    // con la cotización que estaba cargada cuando se registró el cobro.
+    let paid = 0;
+    for (const p of data.payments.filter((p) => p.opportunityId === sale.opportunityId)) {
+      const converted = convert(p.amount, amount.currency, p.usdRate);
+      if (!converted) {
+        avisos.push(`Un cobro en ${p.amount.currency} no tiene cotización para descontarse del saldo`);
+        continue;
+      }
+      paid += p.kind === "devolucion" ? -converted.amount : converted.amount;
+    }
     addTo(cobradoSobreVentas, { amount: paid, currency: amount.currency });
     addTo(saldo, { amount: Math.max(amount.amount - paid, 0), currency: amount.currency });
   }

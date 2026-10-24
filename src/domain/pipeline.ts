@@ -101,6 +101,7 @@ export function refundPayment(
     kind: "devolucion",
     paidAt: input.at,
     refundsPaymentId: original.id,
+    usdRate: original.usdRate,
   };
 }
 
