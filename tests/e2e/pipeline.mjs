@@ -142,6 +142,19 @@ const { data: pays } = await admin.from("payments").select("amount, kind").eq("b
 const net = pays.reduce((s, p) => s + (p.kind === "devolucion" ? -p.amount : Number(p.amount)), 0);
 check(net === 0 && pays.length === 6, "se devolvió todo sin borrar los cobros originales");
 
+// Objetivos del mes y embudo en el dashboard.
+await page.goto(`${BASE}/negocio/${businessId}/configuracion`);
+const goalsForm = page.locator("form").filter({ has: page.locator("button:has-text('Guardar objetivos')") });
+await goalsForm.locator("input[name=facturacion]").fill("1.000.000");
+await goalsForm.locator("input[name=ventas]").fill("10");
+await submit("Guardar objetivos");
+await page.getByText("Objetivos guardados").waitFor();
+await page.goto(`${BASE}/negocio/${businessId}`);
+text = await main();
+check(text.includes("Objetivos de") && text.includes("de $ 1.000.000"), "el dashboard muestra el avance contra el objetivo");
+check(text.includes("Embudo") && text.includes("Oportunidades"), "el dashboard muestra el embudo");
+await shot("dashboard-objetivos");
+
 await page.setViewportSize({ width: 390, height: 844 });
 await page.goto(`${BASE}/negocio/${businessId}/pipeline`);
 await shot("pipeline-movil", false);

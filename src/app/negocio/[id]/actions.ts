@@ -105,3 +105,31 @@ export async function saveSettings(businessId: string, _prev: FormState, formDat
   revalidatePath(`/negocio/${businessId}`, "layout");
   return { ok: true, message: "Configuración guardada. Las ventas nuevas toman esta cotización." };
 }
+
+const GOAL_METRICS = ["facturacion", "ventas", "consultas"] as const;
+
+/** Objetivos de un mes. Vacío borra el objetivo de esa métrica. */
+export async function saveGoals(businessId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, business } = await loadBusiness(businessId);
+  const month = String(formData.get("month") ?? "");
+  if (!/^\d{4}-\d{2}$/.test(month)) return { ok: false, message: "Elegí el mes" };
+  const periodStart = `${month}-01`;
+
+  for (const metric of GOAL_METRICS) {
+    const raw = formData.get(metric);
+    const target = metric === "facturacion" ? parseAmount(raw) : raw ? Number(raw) : null;
+    if (raw && (target === null || !Number.isInteger(target) || target < 0)) {
+      return { ok: false, message: "Los objetivos tienen que ser números positivos" };
+    }
+    const where = { business_id: businessId, metric, period_kind: "mensual", period_start: periodStart };
+    const { error } = target
+      ? await supabase.from("goals").upsert(
+          { ...where, target, currency: metric === "facturacion" ? business.currency : null },
+          { onConflict: "business_id,metric,period_kind,period_start" },
+        )
+      : await supabase.from("goals").delete().match(where);
+    if (error) return { ok: false, message: error.message };
+  }
+  revalidatePath(`/negocio/${businessId}`, "layout");
+  return { ok: true, message: "Objetivos guardados" };
+}

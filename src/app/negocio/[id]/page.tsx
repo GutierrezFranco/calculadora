@@ -1,9 +1,12 @@
 import { AppHeader } from "@/components/app-header";
 import { Dashboard, parseRange } from "@/components/dashboard";
-import { lastNDays, localDate, previousPeriod } from "@/domain/dates";
+import { Funnel } from "@/components/funnel";
+import { GoalsProgress } from "@/components/goals";
+import { addDays, lastNDays, localDate, previousPeriod } from "@/domain/dates";
+import { computeFunnel } from "@/domain/funnel";
 import { computeMetrics } from "@/domain/metrics";
 import { getBusinessForUser } from "@/lib/business-access";
-import { lastUpdate, loadBusinessData } from "@/lib/data";
+import { lastUpdate, loadBusinessData, loadGoals } from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
 
 export default async function BusinessDashboardPage({
@@ -16,9 +19,14 @@ export default async function BusinessDashboardPage({
   const { id } = await params;
   const days = parseRange((await searchParams).dias);
   const { user, business, supabase } = await getBusinessForUser(id, "dashboard");
-  const [data, updatedAt] = await Promise.all([loadBusinessData(supabase, business), lastUpdate(supabase, id)]);
-
   const today = localDate(new Date().toISOString(), business.timezone);
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const monthEnd = addDays(`${addDays(monthStart, 32).slice(0, 7)}-01`, -1);
+  const [data, updatedAt, goals] = await Promise.all([
+    loadBusinessData(supabase, business),
+    lastUpdate(supabase, id),
+    loadGoals(supabase, id, monthStart),
+  ]);
   const period = lastNDays(days, today);
 
   return (
@@ -33,6 +41,16 @@ export default async function BusinessDashboardPage({
           currency={business.currency}
           days={days}
           basePath={`/negocio/${id}`}
+          before={
+            <GoalsProgress
+              goals={goals}
+              monthToDate={computeMetrics(data, { from: monthStart, to: today })}
+              monthEnd={monthEnd}
+              currency={business.currency}
+              settingsHref={`/negocio/${id}/configuracion`}
+            />
+          }
+          after={<Funnel steps={computeFunnel(data, period)} />}
         />
       </main>
     </>

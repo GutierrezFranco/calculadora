@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { PeriodMetrics } from "@/domain/metrics";
 import type { MoneyTotals } from "@/domain/money";
 import { formatCount, formatMoney, formatRatio } from "@/lib/format";
@@ -82,7 +83,13 @@ export function Dashboard({
   currency,
   days,
   basePath,
+  before,
+  after,
 }: {
+  /** Contenido entre el encabezado y las tarjetas (objetivos). */
+  before?: ReactNode;
+  /** Contenido debajo de las tarjetas (embudo). */
+  after?: ReactNode;
   title: string;
   subtitle?: string;
   metrics: PeriodMetrics;
@@ -119,6 +126,8 @@ export function Dashboard({
         </nav>
       </header>
 
+      {before}
+
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {cards(metrics, previous, currency).map((card) => (
           <article key={card.label} className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
@@ -129,6 +138,8 @@ export function Dashboard({
           </article>
         ))}
       </section>
+
+      {after}
 
       {metrics.avisos.length > 0 && (
         <ul className="mt-6 list-disc pl-5 text-sm text-neutral-500">

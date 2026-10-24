@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Dashboard, parseRange } from "@/components/dashboard";
+import { Funnel } from "@/components/funnel";
 import { lastNDays, localDate, previousPeriod } from "@/domain/dates";
+import { computeFunnel } from "@/domain/funnel";
 import { computeMetrics } from "@/domain/metrics";
 import { demoData } from "@/lib/demo-data";
 
@@ -29,6 +31,7 @@ export default async function DemoPage({
         currency={data.business.currency}
         days={days}
         basePath="/demo"
+        after={<Funnel steps={computeFunnel(data, period)} />}
       />
     </main>
   );

@@ -56,7 +56,7 @@ const rate = (value: number | string | null) => (value === null ? null : Number(
 /** Todos los registros comerciales de un negocio, en el formato del dominio. */
 export async function loadBusinessData(supabase: SupabaseClient, business: BusinessRow): Promise<BusinessData> {
   const id = business.id;
-  const [opportunities, sales, payments, adjustments, tallies] = await Promise.all([
+  const [opportunities, sales, payments, adjustments, tallies, quotes] = await Promise.all([
     fetchAll<{ id: string; contact_id: string; created_at: string; stage: Opportunity["stage"]; source: Opportunity["source"]; lost_at: string | null }>(
       supabase, "opportunities", "id, contact_id, created_at, stage, source, lost_at", id),
     fetchAll<{ id: string; opportunity_id: string; contact_id: string; amount: number; currency: string; direct_cost: number | null; variable_costs: number | null; won_at: string; status: Sale["status"]; usd_rate: string | null }>(
@@ -67,6 +67,7 @@ export async function loadBusinessData(supabase: SupabaseClient, business: Busin
       supabase, "sale_adjustments", "id, sale_id, kind, amount_delta, currency, at, reason", id),
     fetchAll<{ id: string; date: string; count: number; method: InquiryTally["method"] }>(
       supabase, "inquiry_tallies", "id, date, count, method", id),
+    fetchAll<{ opportunity_id: string }>(supabase, "quotes", "opportunity_id", id),
   ]);
 
   return {
@@ -92,6 +93,7 @@ export async function loadBusinessData(supabase: SupabaseClient, business: Busin
       amountDelta: { amount: Number(a.amount_delta), currency: a.currency }, at: a.at, reason: a.reason,
     })),
     tallies: tallies.map((t) => ({ id: t.id, businessId: id, date: t.date, count: t.count, method: t.method })),
+    quotedOpportunityIds: [...new Set(quotes.map((q) => q.opportunity_id))],
   };
 }
 
@@ -110,4 +112,25 @@ export async function lastUpdate(supabase: SupabaseClient, businessId: string): 
     .limit(1)
     .maybeSingle();
   return (data?.at as string | undefined) ?? null;
+}
+
+export interface MonthlyGoals {
+  facturacion: number | null;
+  ventas: number | null;
+  consultas: number | null;
+}
+
+/** Objetivos mensuales de un mes (periodStart = primer día, YYYY-MM-01). */
+export async function loadGoals(supabase: SupabaseClient, businessId: string, periodStart: string): Promise<MonthlyGoals> {
+  const { data } = await supabase
+    .from("goals")
+    .select("metric, target")
+    .eq("business_id", businessId)
+    .eq("period_kind", "mensual")
+    .eq("period_start", periodStart);
+  const get = (metric: string) => {
+    const row = data?.find((g) => g.metric === metric);
+    return row ? Number(row.target) : null;
+  };
+  return { facturacion: get("facturacion"), ventas: get("ventas"), consultas: get("consultas") };
 }

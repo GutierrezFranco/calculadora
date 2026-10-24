@@ -136,4 +136,6 @@ export interface BusinessData {
   payments: Payment[];
   adjustments: SaleAdjustment[];
   tallies: InquiryTally[];
+  /** Oportunidades que recibieron al menos un presupuesto (para el embudo). */
+  quotedOpportunityIds?: string[];
 }
