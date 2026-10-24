@@ -14,6 +14,7 @@ export interface PipelineCard {
   phone: string | null;
   /** Monto pactado si está ganada; si no, el último presupuesto. */
   value: { amount: number; currency: string } | null;
+  funnelName: string | null;
 }
 
 type Row = {
@@ -27,9 +28,10 @@ type Row = {
   contacts: { name: string | null; contact_phones: { phone_e164: string }[] } | null;
   quotes: { amount: number; currency: string; version: number }[];
   sales: { amount: number; currency: string; status: string }[];
+  funnels: { name: string } | null;
 };
 
-const COLUMNS = `id, stage, need, created_at, last_interaction_at, next_follow_up_at, lost_at,
+const COLUMNS = `id, stage, need, created_at, last_interaction_at, next_follow_up_at, lost_at, funnels(name),
   contacts(name, contact_phones(phone_e164)), quotes(amount, currency, version), sales(amount, currency, status)`;
 
 function toCard(r: Row): PipelineCard {
@@ -47,6 +49,7 @@ function toCard(r: Row): PipelineCard {
     contactName: r.contacts?.name ?? null,
     phone: r.contacts?.contact_phones[0]?.phone_e164 ?? null,
     value: value ? { amount: Number(value.amount), currency: value.currency } : null,
+    funnelName: r.funnels?.name ?? null,
   };
 }
 
@@ -80,6 +83,13 @@ export async function loadPipeline(supabase: SupabaseClient, businessId: string,
 
 export interface OpportunityDetail extends PipelineCard {
   source: string;
+  funnelId: string | null;
+  funnelName: string | null;
+  attributionConfidence: string | null;
+  evidence: string | null;
+  entryKind: "consulta" | "venta_directa";
+  lostCategory: string | null;
+  touchpoints: { id: string; funnelName: string; evidence: string | null }[];
   lostReason: string | null;
   contactId: string;
   quotes: { id: string; version: number; amount: number; currency: string; quotedAt: string }[];
@@ -99,6 +109,8 @@ export async function loadOpportunity(supabase: SupabaseClient, oppId: string): 
     .from("opportunities")
     .select(
       `id, stage, need, source, created_at, last_interaction_at, next_follow_up_at, lost_at, lost_reason, contact_id,
+       funnel_id, attribution_confidence, source_evidence, entry_kind, lost_category, funnels(name),
+       attribution_touchpoints(id, evidence, funnels(name)),
        contacts(name, contact_phones(phone_e164)),
        quotes(id, version, amount, currency, quoted_at),
        sales(id, amount, currency, direct_cost, won_at, status),
@@ -112,6 +124,13 @@ export async function loadOpportunity(supabase: SupabaseClient, oppId: string): 
     source: string;
     lost_reason: string | null;
     contact_id: string;
+    funnel_id: string | null;
+    attribution_confidence: string | null;
+    source_evidence: string | null;
+    entry_kind: "consulta" | "venta_directa";
+    lost_category: string | null;
+    funnels: { name: string } | null;
+    attribution_touchpoints: { id: string; evidence: string | null; funnels: { name: string } | null }[];
     quotes: { id: string; version: number; amount: number; currency: string; quoted_at: string }[];
     sales: { id: string; amount: number; currency: string; direct_cost: number | null; won_at: string; status: "vigente" | "revertida" }[];
     payments: { id: string; amount: number; currency: string; kind: string; method: string | null; paid_at: string }[];
@@ -121,6 +140,13 @@ export async function loadOpportunity(supabase: SupabaseClient, oppId: string): 
   return {
     ...toCard(r),
     source: r.source,
+    funnelId: r.funnel_id,
+    funnelName: r.funnels?.name ?? null,
+    attributionConfidence: r.attribution_confidence,
+    evidence: r.source_evidence,
+    entryKind: r.entry_kind,
+    lostCategory: r.lost_category,
+    touchpoints: r.attribution_touchpoints.map((t) => ({ id: t.id, funnelName: t.funnels?.name ?? "", evidence: t.evidence })),
     lostReason: r.lost_reason,
     contactId: r.contact_id,
     quotes: r.quotes

@@ -6,11 +6,23 @@ DB="mdm_os_test_$$"
 cd "$(dirname "$0")/.."
 createdb "$DB"
 createdb "${DB}_todo"
-trap 'dropdb --if-exists "$DB"; dropdb --if-exists "${DB}_todo"' EXIT
+createdb "${DB}_previa"
+trap 'dropdb --if-exists "$DB"; dropdb --if-exists "${DB}_todo"; dropdb --if-exists "${DB}_previa"' EXIT
 
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f tests/db/supabase_stub.sql
 for f in supabase/migrations/*.sql; do psql -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f"; done
 for f in tests/db/*.test.sql; do psql -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f"; done
+
+# V1.3 instalada sobre datos cargados con las versiones anteriores.
+psql -q -v ON_ERROR_STOP=1 -d "${DB}_previa" -f tests/db/supabase_stub.sql
+for f in supabase/migrations/*.sql; do
+  [[ "$(basename "$f")" < "20261025" ]] && psql -q -v ON_ERROR_STOP=1 -d "${DB}_previa" -f "$f"
+done
+psql -q -v ON_ERROR_STOP=1 -d "${DB}_previa" -f tests/db/datos-previos/antes-v13.sql >/dev/null
+for f in supabase/migrations/*.sql; do
+  [[ "$(basename "$f")" < "20261025" ]] || psql -q -v ON_ERROR_STOP=1 -d "${DB}_previa" -f "$f"
+done
+psql -q -v ON_ERROR_STOP=1 -d "${DB}_previa" -f tests/db/datos-previos/despues-v13.sql
 
 tmp=$(mktemp)
 cp supabase/instalar-todo.sql "$tmp"

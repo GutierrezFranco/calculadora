@@ -1,6 +1,7 @@
 // Diagnóstico de cuellos de botella. Cada regla exige datos suficientes: sin datos o con
 // muestras chicas no se emite ningún diagnóstico (criterio 11). Los umbrales son
 // iniciales y se pueden ajustar con la experiencia del programa.
+import { MIN_COVERAGE } from "./cohort";
 import type { FunnelStep } from "./funnel";
 import type { PeriodMetrics } from "./metrics";
 
@@ -72,18 +73,30 @@ export function diagnose(input: DiagnosisInput): Finding[] {
   }
 
   const close = m.tasaCierre;
-  if (close && close.ratio !== null && close.ganadas + close.perdidas >= minSample) {
+  if (close && close.cobertura !== null && close.recibidas >= minSample && close.cobertura < MIN_COVERAGE) {
+    findings.push({
+      id: "cobertura_baja",
+      severity: "media",
+      title: "Muchas consultas sin cargar una por una",
+      detail: `Solo ${pct(close.cobertura)} de las consultas del período está cargada como oportunidad: la tasa de cierre es aproximada.`,
+      action: "Cargá cada consulta con su origen (o importala desde tu sistema) para medir bien el cierre por embudo.",
+    });
+  }
+
+  if (close && close.ratio !== null && close.identificadas >= minSample) {
     if (close.ratio < 0.25) {
       findings.push({
         id: "cierre_bajo",
         severity: "alta",
         title: "Tasa de cierre baja",
-        detail: `Se gana ${pct(close.ratio)} de las oportunidades decididas (${close.ganadas} de ${close.ganadas + close.perdidas}).`,
+        detail: `Se ganó ${pct(close.ratio)} de las consultas del período (${close.ganadas} de ${close.identificadas}${close.pendientes ? `, ${close.pendientes} siguen abiertas` : ""}).`,
         action: "Revisá los motivos de pérdida: si es precio, trabajá la presentación del valor; si es demora, el seguimiento.",
       });
     }
     const prev = p.tasaCierre;
-    if (prev && prev.ratio !== null && prev.ganadas + prev.perdidas >= minSample && prev.ratio > 0 && close.ratio < prev.ratio * 0.8) {
+    // Una cohorte con muchas abiertas todavía puede subir: se compara solo si está casi cerrada.
+    if (prev && prev.ratio !== null && prev.identificadas >= minSample && prev.ratio > 0 && close.ratio < prev.ratio * 0.8
+        && close.pendientes <= close.identificadas * 0.25) {
       findings.push({
         id: "cierre_bajo_vs_anterior",
         severity: "media",

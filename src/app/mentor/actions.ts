@@ -42,6 +42,8 @@ export async function createStudent(_prev: FormState, formData: FormData): Promi
     currency,
     timezone,
     usd_rate: usdRate === null ? null : usdRate / 100,
+    // Línea de base del antes y después: el mes en que entra al programa (se puede cambiar en su ficha).
+    program_start: `${new Date().toISOString().slice(0, 7)}-01`,
   });
   const { error: memberError } = businessError
     ? { error: businessError }
@@ -77,4 +79,68 @@ export async function resetStudentPassword(businessId: string, _prev: FormState,
     if (error) return { ok: false, message: error.message };
   }
   return { ok: true, message: "Contraseña cambiada: pasásela al alumno" };
+}
+
+const revalidateStudent = (businessId: string) => {
+  revalidatePath(`/mentor/alumno/${businessId}`);
+  revalidatePath("/mentor");
+};
+
+/** Mes de ingreso al programa: es la línea de base del antes y después. */
+export async function setProgramStart(businessId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireMentor();
+  const month = String(formData.get("month") ?? "");
+  if (!/^\d{4}-\d{2}$/.test(month)) return { ok: false, message: "Elegí el mes" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("businesses").update({ program_start: `${month}-01` }).eq("id", businessId);
+  if (error) return { ok: false, message: error.message };
+  revalidateStudent(businessId);
+  return { ok: true, message: "Mes de ingreso guardado" };
+}
+
+/** Valores declarados del mes de ingreso, cuando no hay datos cargados de ese mes. */
+export async function saveBaseline(businessId: string, currency: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireMentor();
+  const count = (name: string) => {
+    const raw = String(formData.get(name) ?? "").trim();
+    return raw === "" ? null : Number(raw);
+  };
+  const consultas = count("consultas");
+  const clientes = count("clientes");
+  const facturacion = parseAmount(formData.get("facturacion"));
+  if ([consultas, clientes].some((v) => v !== null && (!Number.isInteger(v) || v < 0))) {
+    return { ok: false, message: "Consultas y clientes son números enteros" };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.from("business_baselines").upsert({
+    business_id: businessId,
+    consultas,
+    clientes,
+    facturacion,
+    currency,
+    notes: String(formData.get("notes") ?? "").trim() || null,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { ok: false, message: error.message };
+  revalidateStudent(businessId);
+  return { ok: true, message: "Línea de base guardada como declarada" };
+}
+
+export async function addNote(businessId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireMentor();
+  const body = String(formData.get("body") ?? "").trim();
+  if (!body) return { ok: false, message: "Escribí la nota" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("mentor_notes").insert({ business_id: businessId, body: body.slice(0, 4000) });
+  if (error) return { ok: false, message: error.message };
+  revalidateStudent(businessId);
+  return { ok: true, message: "Nota guardada" };
+}
+
+export async function deleteNote(businessId: string, noteId: string): Promise<void> {
+  await requireMentor();
+  const supabase = await createClient();
+  const { error } = await supabase.from("mentor_notes").delete().eq("id", noteId);
+  if (error) throw new Error(error.message);
+  revalidateStudent(businessId);
 }

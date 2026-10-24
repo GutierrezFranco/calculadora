@@ -9,3 +9,4 @@ node tests/e2e/flujo.mjs
 node tests/e2e/pipeline.mjs
 node tests/e2e/importar.mjs
 node tests/e2e/v1b.mjs
+node tests/e2e/v13.mjs

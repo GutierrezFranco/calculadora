@@ -114,3 +114,39 @@ describe("parseProspects", () => {
     ]);
   });
 });
+
+describe("V1.3: consultas individuales, ID de origen y Google Sheets", () => {
+  it("detecta la columna de N° de orden y la guarda como id externo", async () => {
+    const { guessMapping, parseSales } = await import("./import");
+    const headers = ["Fecha", "N° de orden", "Total", "Cliente"];
+    const mapping = guessMapping(headers, "ventas");
+    expect(mapping.id).toBe(1);
+    const r = parseSales([["02/04/2026", "A-1001", "15000", "Ana"]], mapping, {
+      timezone: "America/Argentina/Buenos_Aires", currency: "ARS", today: "2026-04-30", normalizePhone: () => null,
+    });
+    expect(r.rows[0].externalId).toBe("A-1001");
+  });
+
+  it("interpreta consultas individuales", async () => {
+    const { guessMapping, parseOpportunities } = await import("./import");
+    const headers = ["Fecha", "Cliente", "Teléfono", "Equipo"];
+    const mapping = guessMapping(headers, "oportunidades");
+    const r = parseOpportunities([["03/04/2026", "Beto", "11 2345 6789", "iPhone 13 pantalla"], ["", "", "", ""], ["x", "Caro", "", ""]], mapping, {
+      timezone: "America/Argentina/Buenos_Aires", currency: "ARS", today: "2026-04-30", normalizePhone: (raw) => `+549${raw.replace(/\D/g, "")}`,
+    });
+    expect(r.rows).toHaveLength(1);
+    expect(r.rows[0]).toMatchObject({ cliente: "Beto", telefono: "+5491123456789", necesidad: "iPhone 13 pantalla" });
+    expect(r.skipped).toBe(1);
+    expect(r.errors).toEqual([{ row: 4, message: "fecha ilegible" }]);
+  });
+
+  it("convierte el link de una planilla de Google en su descarga CSV y rechaza otros sitios", async () => {
+    const { googleSheetCsvUrl } = await import("./import");
+    expect(googleSheetCsvUrl("https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/edit#gid=42")).toEqual({
+      url: "https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/export?format=csv&gid=42",
+      sourceSystem: "sheets:1AbCdEfGhIjKlMnOpQrStUvWxYz012345:42",
+    });
+    expect(googleSheetCsvUrl("https://evil.example.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345")).toBeNull();
+    expect(googleSheetCsvUrl("http://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345")).toBeNull();
+  });
+});
