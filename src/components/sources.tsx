@@ -6,7 +6,7 @@ export function Sources({ rows, ads }: { rows: SourceRow[]; ads: AdsSummary | nu
   return (
     <section className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
       <h2 className="mb-1 text-sm font-medium">Adquisición por canal</h2>
-      <p className="mb-3 text-xs text-neutral-500">Según el origen que cargaste en cada oportunidad. Las ventas rápidas sin origen van como &ldquo;Sin dato&rdquo;.</p>
+      <p className="mb-3 text-xs text-neutral-500">Según el origen que cargaste en cada oportunidad. Oportunidades creadas y ventas ganadas dentro del período (una venta puede venir de una oportunidad anterior).</p>
       {rows.length === 0 ? (
         <p className="text-sm text-neutral-500">Sin datos.</p>
       ) : (

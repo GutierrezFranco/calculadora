@@ -4,9 +4,9 @@ Registro de funciones implementadas y pendientes, como pide la sección 14 de la
 
 Pruebas:
 
-- `npm test`: reglas comerciales, métricas, embudo e interpretación de planillas (32 tests).
+- `npm test`: reglas comerciales, métricas, embudo, proyección, semáforos, canales, diagnóstico e interpretación de planillas (54 tests).
 - `npm run test:db`: acceso por negocio y pipeline en la base (Postgres local).
-- `npm run test:e2e`: tres recorridos completos en el navegador contra Supabase local (alta y acceso, pipeline, importación y exportación).
+- `npm run test:e2e`: cuatro recorridos completos en el navegador contra Supabase local (alta y acceso, pipeline, importación y exportación, V1B).
 
 ## V1A — Base confiable: completa
 
@@ -31,11 +31,7 @@ Pruebas:
 | Configuración: moneda, cotización del dólar, política de señas | ✅ |
 | Cotización guardada en cada venta y cobro | ✅ |
 
-### Pendiente menor de V1A
-
-- Fusionar contactos duplicados (la tabla lo soporta; falta la pantalla).
-- Deshacer una importación completa.
-- Que el mentor pueda resetear la contraseña de un alumno desde el panel.
+Completados después: contactos con fusión de duplicados, deshacer importación y cambio de contraseña del alumno desde el panel del mentor.
 
 ## Criterios de aceptación (sección 12)
 
@@ -56,9 +52,19 @@ Pruebas:
 | 13 | 30/60/90 y ventanas equivalentes | ✅ Dominio |
 | 14 | Totales diarios y oportunidades no se duplican | ✅ Dominio (también manual vs. importado) |
 
-## Siguiente: V1B
+## V1B — Decisiones y captación: completa
 
-Proyecciones (ingeniería inversa de objetivos), semáforos con umbrales, análisis por fuente, prospección CSV, snapshots manuales de Instagram/Ads y diagnóstico de cuellos de botella.
+| Función | Estado |
+|---|---|
+| Proyección de objetivos (ingeniería inversa) con escenario principal y alternativo, supuestos reales o estimados, brecha del mes y sensibilidad | ✅ |
+| Semáforos contra objetivos al ritmo del mes, con umbrales y muestra mínima configurables | ✅ |
+| Adquisición por canal y costo por oportunidad y por cliente de anuncios | ✅ |
+| Prospección: alta, importación CSV/Excel, estados, conversión al pipeline y tasas | ✅ |
+| Marketing manual: contenido con métricas y resumen por ángulo, métricas de cuenta, campañas e inversión | ✅ |
+| Diagnóstico de cuellos de botella (sin diagnósticos falsos con pocos datos) | ✅ |
+| Panel del mentor: alertas prudentes, período, filtro con alertas y totales del programa | ✅ |
+
+Pendiente de V1B para más adelante: análisis de cohortes de alumnos e informes antes/después en el panel del mentor.
 
 ## Después: V1C y V2
 

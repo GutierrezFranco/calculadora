@@ -64,7 +64,7 @@ export default async function MentorPage({
   return (
     <>
       <AppHeader user={user} />
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="mb-1 text-2xl font-semibold">Alumnos</h1>
@@ -123,7 +123,7 @@ export default async function MentorPage({
                       {daysLoaded}/{DAYS}
                     </td>
                     <td className="px-3 py-2">{formatDateTime(updatedAt, b.timezone)}</td>
-                    <td className="px-3 py-2 text-xs">
+                    <td className="min-w-44 whitespace-normal px-3 py-2 text-xs">
                       {alerts.length === 0 ? (
                         <span className="text-neutral-400">—</span>
                       ) : (

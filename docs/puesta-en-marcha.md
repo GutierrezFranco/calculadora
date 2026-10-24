@@ -9,8 +9,9 @@ Pasos para dejar MDM OS funcionando con tu cuenta de Supabase y Vercel. Se hacen
    (pegar → **Run**, uno por vez). Cada uno tiene que terminar con "Success. No rows returned":
    1. [`supabase/migrations/20261024000000_v1a_nucleo.sql`](../supabase/migrations/20261024000000_v1a_nucleo.sql)
    2. [`supabase/migrations/20261024010000_v1a_pipeline.sql`](../supabase/migrations/20261024010000_v1a_pipeline.sql)
+   3. [`supabase/migrations/20261024020000_v1b.sql`](../supabase/migrations/20261024020000_v1b.sql)
 
-   Si ya habías corrido el primero, corré solo el segundo. Cuando haya archivos nuevos en `supabase/migrations/`,
+   Si ya corriste algunos, corré solo los que faltan. Cuando haya archivos nuevos en `supabase/migrations/`,
    se corren igual: solo los nuevos, en orden.
 3. **Authentication → Sign In / Providers → Email**: dejá activado el login por email y **desactivá "Allow new users to sign up"**.
    Las cuentas de alumnos las creás vos desde el panel del mentor; nadie más se puede registrar.
