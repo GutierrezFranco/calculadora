@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { daysInPeriod } from "@/domain/dates";
 import type { PeriodMetrics } from "@/domain/metrics";
+import { trafficLight, type Thresholds } from "@/domain/traffic-light";
+import { BAR_COLORS, LightBadge } from "./light";
 import type { MonthlyGoals } from "@/lib/data";
 import { formatCount, formatMoney } from "@/lib/format";
 
@@ -16,7 +18,9 @@ export function GoalsProgress({
   monthEnd,
   currency,
   settingsHref,
+  thresholds,
 }: {
+  thresholds: Thresholds;
   goals: MonthlyGoals;
   monthToDate: PeriodMetrics;
   monthEnd: string;
@@ -56,6 +60,13 @@ export function GoalsProgress({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {rows.map((r) => {
           const ratio = r.actual === null ? null : r.actual / r.goal!;
+          const light = trafficLight({
+            actual: r.actual,
+            target: r.goal,
+            expectedFraction: pace,
+            sample: monthToDate.consultasCalificadas,
+            thresholds,
+          });
           return (
             <div key={r.label}>
               <div className="flex justify-between text-sm">
@@ -63,12 +74,15 @@ export function GoalsProgress({
                 <span className="tabular-nums text-neutral-500">{ratio === null ? "Sin datos" : `${Math.round(ratio * 100)} %`}</span>
               </div>
               <div className="relative mt-1 h-2 rounded-full bg-neutral-200 dark:bg-neutral-800">
-                <div className="h-2 rounded-full bg-neutral-900 dark:bg-white" style={{ width: `${Math.min((ratio ?? 0) * 100, 100)}%` }} />
+                <div className={`h-2 rounded-full ${BAR_COLORS[light]}`} style={{ width: `${Math.min((ratio ?? 0) * 100, 100)}%` }} />
                 <div className="absolute top-[-3px] h-3.5 w-0.5 bg-neutral-500" style={{ left: `${pace * 100}%` }} title="Ritmo esperado a hoy" />
               </div>
-              <p className="mt-1 text-xs text-neutral-500 tabular-nums">
-                {r.actual === null ? "Sin datos" : r.format(r.actual)} de {r.format(r.goal!)}
-              </p>
+              <div className="mt-1 flex flex-wrap justify-between gap-x-2">
+                <LightBadge light={light} />
+                <p className="text-xs text-neutral-500 tabular-nums">
+                  {r.actual === null ? "Sin datos" : r.format(r.actual)} de {r.format(r.goal!)}
+                </p>
+              </div>
             </div>
           );
         })}

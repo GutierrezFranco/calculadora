@@ -1,5 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AdSpendSnapshot } from "@/domain/sources";
+import type { Thresholds } from "@/domain/traffic-light";
 import type {
   Business,
   BusinessData,
@@ -20,6 +22,9 @@ export interface BusinessRow {
   deposits_refundable: boolean;
   active: boolean;
   created_at: string;
+  semaforo_verde: number;
+  semaforo_amarillo: number;
+  muestra_minima: number;
 }
 
 export function toBusiness(row: BusinessRow): Business {
@@ -133,4 +138,96 @@ export async function loadGoals(supabase: SupabaseClient, businessId: string, pe
     return row ? Number(row.target) : null;
   };
   return { facturacion: get("facturacion"), ventas: get("ventas"), consultas: get("consultas") };
+}
+
+export function thresholdsOf(row: BusinessRow): Thresholds {
+  return { green: Number(row.semaforo_verde), yellow: Number(row.semaforo_amarillo), minSample: row.muestra_minima };
+}
+
+/** Inversión en anuncios cargada (todas las campañas). */
+export async function loadAdSnapshots(supabase: SupabaseClient, businessId: string): Promise<AdSpendSnapshot[]> {
+  const { data, error } = await supabase
+    .from("ad_metric_snapshots")
+    .select("period_start, period_end, spend, currency, conversations")
+    .eq("business_id", businessId);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((s) => ({
+    periodStart: s.period_start,
+    periodEnd: s.period_end,
+    spend: { amount: Number(s.spend), currency: s.currency },
+    conversations: s.conversations,
+  }));
+}
+
+/** Seguimientos vencidos y oportunidades abiertas sin movimiento hace más de 14 días. */
+export async function loadPipelineHealth(supabase: SupabaseClient, businessId: string): Promise<{ overdue: number; stale: number }> {
+  const now = new Date();
+  const staleSince = new Date(now.getTime() - 14 * 86_400_000).toISOString();
+  const open = ["nueva_consulta", "presupuestado", "en_seguimiento", "senado"];
+  const [overdue, stale] = await Promise.all([
+    supabase
+      .from("opportunities")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId)
+      .in("stage", open)
+      .lt("next_follow_up_at", now.toISOString()),
+    supabase
+      .from("opportunities")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId)
+      .in("stage", open)
+      .lt("last_interaction_at", staleSince),
+  ]);
+  return { overdue: overdue.count ?? 0, stale: stale.count ?? 0 };
+}
+
+/** Visitas al perfil cargadas en snapshots de cuenta que caen dentro del período (prorrateadas). */
+export async function loadProfileVisits(supabase: SupabaseClient, businessId: string, from: string, to: string): Promise<number | null> {
+  const { data } = await supabase
+    .from("account_metric_snapshots")
+    .select("period_start, period_end, profile_visits")
+    .eq("business_id", businessId)
+    .lte("period_start", to)
+    .gte("period_end", from)
+    .not("profile_visits", "is", null);
+  if (!data || data.length === 0) return null;
+  const day = (d: string) => Date.parse(`${d}T00:00:00Z`) / 86_400_000;
+  let visits = 0;
+  for (const s of data) {
+    const start = Math.max(day(s.period_start), day(from));
+    const end = Math.min(day(s.period_end), day(to));
+    const share = (end - start + 1) / (day(s.period_end) - day(s.period_start) + 1);
+    visits += Math.round((s.profile_visits ?? 0) * share);
+  }
+  return visits;
+}
+
+export interface ProspectStats {
+  total: number;
+  contacted: number;
+  responded: number;
+  interested: number;
+  converted: number;
+  clients: number;
+}
+
+/** Embudo de prospección acumulado: cuántos llegaron a cada etapa. Cliente = la oportunidad se ganó. */
+export async function loadProspectStats(supabase: SupabaseClient, businessId: string): Promise<ProspectStats> {
+  const { data, error } = await supabase
+    .from("prospects")
+    .select("contacted_at, responded_at, interested_at, converted_at, opportunity_id, opportunities(sales(status))")
+    .eq("business_id", businessId);
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as unknown as {
+    contacted_at: string | null; responded_at: string | null; interested_at: string | null; converted_at: string | null;
+    opportunities: { sales: { status: string }[] } | null;
+  }[];
+  return {
+    total: rows.length,
+    contacted: rows.filter((r) => r.contacted_at).length,
+    responded: rows.filter((r) => r.responded_at).length,
+    interested: rows.filter((r) => r.interested_at).length,
+    converted: rows.filter((r) => r.converted_at).length,
+    clients: rows.filter((r) => r.opportunities?.sales.some((s) => s.status === "vigente")).length,
+  };
 }

@@ -62,3 +62,19 @@ export async function setActive(businessId: string, active: boolean) {
   if (error) throw new Error(error.message);
   revalidatePath("/mentor");
 }
+
+/** El mentor le pone una contraseña nueva al alumno (por ejemplo, si se la olvidó). */
+export async function resetStudentPassword(businessId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireMentor();
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 8) return { ok: false, message: "Al menos 8 caracteres" };
+  const supabase = await createClient();
+  const { data: members } = await supabase.from("memberships").select("user_id").eq("business_id", businessId);
+  if (!members || members.length === 0) return { ok: false, message: "Este negocio no tiene cuenta de alumno" };
+  const admin = createAdminClient();
+  for (const m of members) {
+    const { error } = await admin.auth.admin.updateUserById(m.user_id, { password });
+    if (error) return { ok: false, message: error.message };
+  }
+  return { ok: true, message: "Contraseña cambiada: pasásela al alumno" };
+}

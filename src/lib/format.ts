@@ -32,3 +32,8 @@ export function formatDateTime(iso: string | null, timezone: string): string {
 export function parseAmount(input: FormDataEntryValue | null): number | null {
   return typeof input === "string" ? parseAmountText(input) : null;
 }
+
+/** Días enteros transcurridos desde un instante. */
+export function daysSince(iso: string): number {
+  return Math.floor((Date.now() - Date.parse(iso)) / 86_400_000);
+}

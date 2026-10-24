@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { ImportKind, SaleImportRow, TallyImportRow } from "@/domain/import";
+import type { ImportKind, ProspectImportRow, SaleImportRow, TallyImportRow } from "@/domain/import";
 import { getBusiness } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,25 +25,36 @@ function invalidSale(r: SaleImportRow, currency: string): boolean {
   );
 }
 
+function invalidProspect(r: ProspectImportRow): boolean {
+  return (
+    !(r.telefono === null || /^\+[1-9]\d{6,14}$/.test(r.telefono)) ||
+    !(r.email === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) ||
+    ![r.nombre, r.empresa, r.ciudad, r.origen].every(shortText) ||
+    !(r.nombre || r.empresa || r.telefono)
+  );
+}
+
 function invalidTally(r: TallyImportRow): boolean {
   return !/^\d{4}-\d{2}-\d{2}$/.test(r.fecha) || !isInt(r.consultas);
 }
 
 export async function importData(
   businessId: string,
-  payload: { kind: ImportKind; fileName: string; fileHash: string; rows: SaleImportRow[] | TallyImportRow[]; force: boolean },
+  payload: { kind: ImportKind; fileName: string; fileHash: string; rows: SaleImportRow[] | TallyImportRow[] | ProspectImportRow[]; force: boolean },
 ): Promise<ImportResult> {
   const supabase = await createClient();
   const business = await getBusiness(supabase, businessId);
   if (!business) return { ok: false, message: "No tenés acceso a este negocio" };
   const { kind, rows } = payload;
-  if (kind !== "ventas" && kind !== "consultas") return { ok: false, message: "Tipo de importación inválido" };
+  if (!["ventas", "consultas", "prospectos"].includes(kind)) return { ok: false, message: "Tipo de importación inválido" };
   if (rows.length === 0) return { ok: false, message: "No hay filas válidas para importar" };
   if (rows.length > MAX_ROWS) return { ok: false, message: `Máximo ${MAX_ROWS} filas por archivo: dividilo en partes` };
   const bad =
     kind === "ventas"
       ? (rows as SaleImportRow[]).findIndex((r) => invalidSale(r, business.currency))
-      : (rows as TallyImportRow[]).findIndex(invalidTally);
+      : kind === "prospectos"
+        ? (rows as ProspectImportRow[]).findIndex(invalidProspect)
+        : (rows as TallyImportRow[]).findIndex(invalidTally);
   if (bad >= 0) return { ok: false, message: `La fila ${bad + 1} tiene datos inválidos` };
 
   if (!payload.force) {
@@ -53,6 +64,7 @@ export async function importData(
       .eq("business_id", businessId)
       .eq("file_hash", payload.fileHash)
       .gt("rows_imported", 0)
+      .is("undone_at", null)
       .limit(1)
       .maybeSingle();
     if (previous) {
@@ -75,12 +87,23 @@ export async function importData(
   });
   if (importError) return { ok: false, message: importError.message };
 
-  const { data: count, error } = await supabase.rpc(kind === "ventas" ? "importar_ventas" : "importar_consultas", {
+  const rpc = { ventas: "importar_ventas", consultas: "importar_consultas", prospectos: "importar_prospectos" }[kind];
+  const { data: count, error } = await supabase.rpc(rpc, {
     p_import: importId,
     p_rows: rows,
   });
   if (error) return { ok: false, message: `No se importó nada: ${error.message}` };
 
   revalidatePath(`/negocio/${businessId}`, "layout");
-  return { ok: true, message: `Listo: se importaron ${count} ${kind === "ventas" ? "ventas" : "días de consultas"}.` };
+  const noun = { ventas: "ventas", consultas: "días de consultas", prospectos: "prospectos" }[kind];
+  const skipped = kind === "prospectos" && count < rows.length ? ` (${rows.length - count} ya estaban cargados)` : "";
+  return { ok: true, message: `Listo: se importaron ${count} ${noun}${skipped}.` };
+}
+
+/** Quita lo que trajo una importación hecha por error. Queda registrado en la auditoría. */
+export async function undoImport(businessId: string, importId: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("deshacer_importacion", { p_import: importId });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/negocio/${businessId}`, "layout");
 }

@@ -5,7 +5,7 @@ import { instantAt } from "./dates";
 import { parseAmountText } from "./money";
 import type { CurrencyCode, Instant, LocalDate } from "./types";
 
-export type ImportKind = "ventas" | "consultas";
+export type ImportKind = "ventas" | "consultas" | "prospectos";
 
 export type Cell = string | number | boolean | Date | null | undefined;
 
@@ -24,6 +24,14 @@ export const IMPORT_FIELDS = {
     { id: "fecha", label: "Fecha", required: true },
     { id: "consultas", label: "Cantidad de consultas", required: true },
   ],
+  prospectos: [
+    { id: "empresa", label: "Negocio o empresa", required: false },
+    { id: "nombre", label: "Nombre de contacto", required: false },
+    { id: "telefono", label: "Teléfono", required: false },
+    { id: "email", label: "Email", required: false },
+    { id: "ciudad", label: "Ciudad o zona", required: false },
+    { id: "origen", label: "De dónde salió el dato", required: false },
+  ],
 } as const;
 
 export type FieldId = (typeof IMPORT_FIELDS)[ImportKind][number]["id"];
@@ -41,6 +49,11 @@ const KEYWORDS: [FieldId, string[]][] = [
   ["cliente", ["cliente", "nombre", "contacto"]],
   ["descripcion", ["descripcion", "detalle", "trabajo", "reparacion", "servicio", "producto", "concepto", "equipo", "modelo", "articulo"]],
   ["moneda", ["moneda", "divisa", "currency"]],
+  ["empresa", ["empresa", "negocio", "local", "comercio", "razon social", "taller"]],
+  ["nombre", ["nombre", "contacto", "responsable", "dueno"]],
+  ["email", ["email", "e-mail", "mail", "correo"]],
+  ["ciudad", ["ciudad", "localidad", "zona", "provincia", "barrio"]],
+  ["origen", ["origen", "fuente", "procedencia"]],
   ["consultas", ["consultas", "consulta", "mensajes", "leads", "cantidad", "chats"]],
 ];
 
@@ -213,5 +226,44 @@ export function parseTallies(data: Cell[][], mapping: Mapping, options: Pick<Par
     byDate.set(date, (byDate.get(date) ?? 0) + count);
   });
   result.rows = [...byDate].map(([fecha, consultas]) => ({ fecha, consultas })).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  return result;
+}
+
+export interface ProspectImportRow {
+  nombre: string | null;
+  empresa: string | null;
+  telefono: string | null;
+  email: string | null;
+  ciudad: string | null;
+  origen: string | null;
+}
+
+/** Base de prospección: cada fila necesita al menos nombre, negocio o teléfono. Teléfonos repetidos se omiten. */
+export function parseProspects(
+  data: Cell[][],
+  mapping: Mapping,
+  options: Pick<ParseOptions, "normalizePhone">,
+  firstRowNumber = 2,
+): ParseResult<ProspectImportRow> {
+  const result: ParseResult<ProspectImportRow> = { rows: [], errors: [], skipped: 0 };
+  const at = (row: Cell[], field: FieldId) => (mapping[field] === undefined || mapping[field] === null ? null : text(row[mapping[field]!]));
+  const phones = new Set<string>();
+  data.forEach((row, i) => {
+    const rowNumber = firstRowNumber + i;
+    if (row.every((c) => text(c) === null)) {
+      result.skipped++;
+      return;
+    }
+    const rawPhone = at(row, "telefono");
+    const phone = rawPhone ? options.normalizePhone(rawPhone) : null;
+    if (rawPhone && !phone) return result.errors.push({ row: rowNumber, message: "teléfono inválido" });
+    const email = at(row, "email");
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return result.errors.push({ row: rowNumber, message: "email inválido" });
+    const prospect = { nombre: at(row, "nombre"), empresa: at(row, "empresa"), telefono: phone, email, ciudad: at(row, "ciudad"), origen: at(row, "origen") };
+    if (!prospect.nombre && !prospect.empresa && !phone) return result.errors.push({ row: rowNumber, message: "sin nombre, negocio ni teléfono" });
+    if (phone && phones.has(phone)) return result.errors.push({ row: rowNumber, message: "teléfono repetido en el archivo" });
+    if (phone) phones.add(phone);
+    result.rows.push(prospect);
+  });
   return result;
 }

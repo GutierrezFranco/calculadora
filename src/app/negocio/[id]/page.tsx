@@ -1,12 +1,16 @@
 import { AppHeader } from "@/components/app-header";
 import { Dashboard, parseRange } from "@/components/dashboard";
+import { Diagnosis } from "@/components/diagnosis";
 import { Funnel } from "@/components/funnel";
 import { GoalsProgress } from "@/components/goals";
-import { addDays, lastNDays, localDate, previousPeriod } from "@/domain/dates";
+import { Sources } from "@/components/sources";
+import { addDays, eachDay, lastNDays, localDate, previousPeriod } from "@/domain/dates";
+import { diagnose } from "@/domain/diagnosis";
 import { computeFunnel } from "@/domain/funnel";
 import { computeMetrics } from "@/domain/metrics";
+import { computeAds, computeBySource } from "@/domain/sources";
 import { getBusinessForUser } from "@/lib/business-access";
-import { lastUpdate, loadBusinessData, loadGoals } from "@/lib/data";
+import { lastUpdate, loadAdSnapshots, loadBusinessData, loadGoals, loadPipelineHealth, thresholdsOf } from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
 
 export default async function BusinessDashboardPage({
@@ -22,12 +26,31 @@ export default async function BusinessDashboardPage({
   const today = localDate(new Date().toISOString(), business.timezone);
   const monthStart = `${today.slice(0, 7)}-01`;
   const monthEnd = addDays(`${addDays(monthStart, 32).slice(0, 7)}-01`, -1);
-  const [data, updatedAt, goals] = await Promise.all([
+  const [data, updatedAt, goals, adSnapshots, health] = await Promise.all([
     loadBusinessData(supabase, business),
     lastUpdate(supabase, id),
     loadGoals(supabase, id, monthStart),
+    loadAdSnapshots(supabase, id),
+    loadPipelineHealth(supabase, id),
   ]);
   const period = lastNDays(days, today);
+  const thresholds = thresholdsOf(business);
+  const metrics = computeMetrics(data, period);
+  const previous = computeMetrics(data, previousPeriod(period));
+  const funnel = computeFunnel(data, period);
+  const periodDays = new Set(eachDay(period));
+  const daysLoaded = new Set(data.tallies.filter((t) => periodDays.has(t.date)).map((t) => t.date)).size;
+  const findings = diagnose({
+    metrics,
+    previous,
+    funnel,
+    currency: business.currency,
+    daysLoaded,
+    days: periodDays.size,
+    overdueFollowUps: health.overdue,
+    staleOpen: health.stale,
+    minSample: thresholds.minSample,
+  });
 
   return (
     <>
@@ -36,8 +59,8 @@ export default async function BusinessDashboardPage({
         <Dashboard
           title={business.name}
           subtitle={`Datos cargados a mano · última actualización: ${formatDateTime(updatedAt, business.timezone)}`}
-          metrics={computeMetrics(data, period)}
-          previous={computeMetrics(data, previousPeriod(period))}
+          metrics={metrics}
+          previous={previous}
           currency={business.currency}
           days={days}
           basePath={`/negocio/${id}`}
@@ -48,9 +71,16 @@ export default async function BusinessDashboardPage({
               monthEnd={monthEnd}
               currency={business.currency}
               settingsHref={`/negocio/${id}/configuracion`}
+              thresholds={thresholds}
             />
           }
-          after={<Funnel steps={computeFunnel(data, period)} />}
+          after={
+            <>
+              <Diagnosis findings={findings} />
+              <Funnel steps={funnel} />
+              <Sources rows={computeBySource(data, period)} ads={computeAds(data, period, adSnapshots)} />
+            </>
+          }
         />
       </main>
     </>

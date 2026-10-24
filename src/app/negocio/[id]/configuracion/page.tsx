@@ -3,7 +3,7 @@ import { AppHeader } from "@/components/app-header";
 import { localDate } from "@/domain/dates";
 import { getBusinessForUser } from "@/lib/business-access";
 import { loadGoals } from "@/lib/data";
-import { saveGoals, saveSettings } from "../actions";
+import { saveGoals, saveSettings, saveThresholds } from "../actions";
 
 export default async function SettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -77,6 +77,26 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           <label className="flex flex-col gap-1 text-sm">
             Consultas
             <input name="consultas" type="number" min={0} defaultValue={goals.consultas ?? ""} className="input" />
+          </label>
+        </ActionForm>
+
+        <h2 className="mb-1 mt-10 text-xl font-semibold">Semáforos</h2>
+        <p className="mb-4 text-sm text-neutral-500">
+          Comparan lo que va del mes con el ritmo necesario para llegar al objetivo. Con menos casos que la muestra mínima no
+          se colorea, para no sacar conclusiones con pocos datos.
+        </p>
+        <ActionForm action={saveThresholds.bind(null, id)} submitLabel="Guardar semáforos" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 text-sm">
+            Verde desde (% del ritmo)
+            <input name="green" type="number" min={1} max={200} defaultValue={Math.round(Number(business.semaforo_verde) * 100)} className="input" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            Amarillo desde (% del ritmo)
+            <input name="yellow" type="number" min={1} max={200} defaultValue={Math.round(Number(business.semaforo_amarillo) * 100)} className="input" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            Muestra mínima (consultas)
+            <input name="minSample" type="number" min={0} defaultValue={business.muestra_minima} className="input" />
           </label>
         </ActionForm>
 

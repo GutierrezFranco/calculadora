@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { guessMapping, parseAmountCell, parseDateCell, parseSales, parseTallies } from "./import";
+import { guessMapping, parseAmountCell, parseDateCell, parseProspects, parseSales, parseTallies } from "./import";
 
 const options = {
   timezone: "America/Argentina/Buenos_Aires",
@@ -89,5 +89,28 @@ describe("parseTallies", () => {
       { fecha: "2026-03-02", consultas: 7 },
     ]);
     expect(result.errors).toEqual([{ row: 5, message: "cantidad inválida" }]);
+  });
+});
+
+describe("parseProspects", () => {
+  it("reconoce columnas y valida teléfonos y emails", () => {
+    const headers = ["Nombre del negocio", "Dueño", "Celular", "Mail", "Localidad"];
+    const mapping = guessMapping(headers, "prospectos");
+    expect(mapping).toEqual({ empresa: 0, nombre: 1, telefono: 2, email: 3, ciudad: 4 });
+    const result = parseProspects(
+      [
+        ["Taller Uno", "Ana", "11 1111 2222", "ana@demo.test", "Quilmes"],
+        ["Taller Dos", null, "11 1111 2222", null, null],
+        [null, null, null, "mal", null],
+        ["Taller Tres", null, null, null, null],
+      ],
+      mapping,
+      options,
+    );
+    expect(result.rows.map((r) => r.empresa)).toEqual(["Taller Uno", "Taller Tres"]);
+    expect(result.errors).toEqual([
+      { row: 3, message: "teléfono repetido en el archivo" },
+      { row: 4, message: "email inválido" },
+    ]);
   });
 });

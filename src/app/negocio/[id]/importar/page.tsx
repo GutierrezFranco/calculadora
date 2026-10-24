@@ -2,6 +2,7 @@ import { AppHeader } from "@/components/app-header";
 import { localDate } from "@/domain/dates";
 import { getBusinessForUser } from "@/lib/business-access";
 import { formatDateTime } from "@/lib/format";
+import { undoImport } from "./actions";
 import { ImportWizard } from "./import-wizard";
 
 export default async function ImportPage({ params }: { params: Promise<{ id: string }> }) {
@@ -9,7 +10,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
   const { user, business, supabase } = await getBusinessForUser(id, "importar");
   const { data: history } = await supabase
     .from("data_imports")
-    .select("id, kind, file_name, rows_total, rows_imported, created_at")
+    .select("id, kind, file_name, rows_total, rows_imported, created_at, undone_at")
     .eq("business_id", id)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -40,9 +41,26 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
                     {h.file_name} · {h.kind}
                   </span>
                   <span className="text-neutral-500">
-                    {h.rows_imported > 0 ? `${h.rows_imported} de ${h.rows_total} filas` : "No se completó"} ·{" "}
-                    {formatDateTime(h.created_at, business.timezone)}
+                    {h.undone_at
+                      ? `Deshecha el ${formatDateTime(h.undone_at, business.timezone)}`
+                      : h.rows_imported > 0
+                        ? `${h.rows_imported} de ${h.rows_total} filas`
+                        : "No se completó"}{" "}
+                    · {formatDateTime(h.created_at, business.timezone)}
                   </span>
+                  {!h.undone_at && h.rows_imported > 0 && (
+                    <details className="w-full text-right">
+                      <summary className="cursor-pointer text-xs text-red-700 underline dark:text-red-400">Deshacer</summary>
+                      <form action={undoImport.bind(null, id, h.id)} className="mt-2 flex flex-wrap items-center justify-end gap-2">
+                        <span className="text-xs text-neutral-500">
+                          Se quitan los {h.rows_imported} registros que trajo este archivo (los prospectos ya convertidos se conservan).
+                        </span>
+                        <button type="submit" className="btn-secondary">
+                          Confirmar: deshacer importación
+                        </button>
+                      </form>
+                    </details>
+                  )}
                 </li>
               ))}
             </ul>
