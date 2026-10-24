@@ -56,11 +56,12 @@ for (const [name, email, business] of [
   ["Alumna Demo", "alumna@demo.test", "Taller Demo Uno"],
   ["Alumno Demo", "alumno@demo.test", "Taller Demo Dos"],
 ]) {
-  await page.fill("input[name=fullName]", name);
-  await page.fill("input[name=email]", email);
-  await page.fill("input[name=password]", "alumno-demo-123");
-  await page.fill("input[name=businessName]", business);
-  await page.fill("input[name=usdRate]", "1.450");
+  const form = page.locator("section", { hasText: "Nuevo alumno" });
+  await form.locator("input[name=fullName]").fill(name);
+  await form.locator("input[name=email]").fill(email);
+  await form.locator("input[name=password]").fill("alumno-demo-123");
+  await form.locator("input[name=businessName]").fill(business);
+  await form.locator("input[name=usdRate]").fill("1.450");
   await page.click("button:has-text('Crear alumno')");
   await page.getByText(`Listo: ${email}`).waitFor();
   await page.reload();
@@ -119,7 +120,7 @@ await page.goto(`${BASE}/negocio/${ownId}`);
 const { count: accesos } = await admin.from("mentor_access_log").select("*", { count: "exact", head: true });
 check(accesos >= 1, "el acceso del mentor al negocio queda registrado");
 await page.goto(`${BASE}/mentor`);
-await page.locator("tr", { hasText: "Taller Demo Uno" }).locator("button").click();
+await page.locator("tr", { hasText: "Taller Demo Uno" }).locator("button", { hasText: "desactivar" }).click();
 await page.locator("tr", { hasText: "Taller Demo Uno" }).getByText("Inactivo").waitFor();
 await page.click("button:has-text('Salir')");
 await page.waitForURL(/\/login/);

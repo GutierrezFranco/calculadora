@@ -4,7 +4,7 @@ Aplicación para que negocios de servicio técnico midan, diagnostiquen y mejore
 
 ## Estado
 
-V1A completa. Ver [docs/estado.md](docs/estado.md).
+V1A y V1B completas. Ver [docs/estado.md](docs/estado.md).
 
 ## Documentos
 
@@ -16,7 +16,7 @@ V1A completa. Ver [docs/estado.md](docs/estado.md).
 ## Estructura
 
 - `src/domain/`: reglas comerciales y cálculo de métricas, sin dependencias de pantalla ni base de datos.
-- `src/app/`: pantallas (Next.js): login, panel del mentor, dashboard, pipeline, carga, importación, exportación y configuración.
+- `src/app/`: pantallas (Next.js): login, panel del mentor, dashboard, pipeline, contactos, prospección, marketing, proyección, carga, importación, exportación y configuración.
 - `supabase/migrations/`: esquema de base de datos con acceso por negocio y auditoría.
 - `tests/db/`: tests de acceso que corren contra un Postgres local.
 - `tests/e2e/`: recorridos de punta a punta en el navegador.

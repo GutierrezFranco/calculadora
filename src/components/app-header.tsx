@@ -11,6 +11,10 @@ export function AppHeader({ user, businessId }: { user: CurrentUser; businessId?
           { href: `/negocio/${businessId}`, label: "Dashboard" },
           { href: `/negocio/${businessId}/pipeline`, label: "Pipeline" },
           { href: `/negocio/${businessId}/cargar`, label: "Cargar" },
+          { href: `/negocio/${businessId}/contactos`, label: "Contactos" },
+          { href: `/negocio/${businessId}/prospeccion`, label: "Prospección" },
+          { href: `/negocio/${businessId}/marketing`, label: "Marketing" },
+          { href: `/negocio/${businessId}/proyeccion`, label: "Proyección" },
           { href: `/negocio/${businessId}/importar`, label: "Importar" },
           { href: `/negocio/${businessId}/configuracion`, label: "Configuración" },
         ]
@@ -22,14 +26,15 @@ export function AppHeader({ user, businessId }: { user: CurrentUser; businessId?
         <Link href="/" className="font-semibold">
           MDM OS
         </Link>
-        <nav className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-sm">
+        {/* En celular la barra de secciones se desliza de costado. */}
+        <nav className="order-last -mx-4 flex w-[calc(100%+2rem)] gap-x-4 overflow-x-auto whitespace-nowrap px-4 pb-1 text-sm sm:order-none sm:mx-0 sm:w-auto sm:flex-1 sm:flex-wrap sm:px-0 sm:pb-0">
           {links.map((l) => (
             <Link key={l.href} href={l.href} className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white">
               {l.label}
             </Link>
           ))}
         </nav>
-        <form action={signOut} className="flex items-center gap-3 text-sm">
+        <form action={signOut} className="ml-auto flex items-center gap-3 text-sm sm:ml-0">
           <Link href="/cuenta" className="text-neutral-500 hover:underline">
             <span className="hidden sm:inline">{user.email}</span>
             <span className="sm:hidden">Cuenta</span>

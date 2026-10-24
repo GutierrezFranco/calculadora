@@ -133,3 +133,22 @@ export async function saveGoals(businessId: string, _prev: FormState, formData: 
   revalidatePath(`/negocio/${businessId}`, "layout");
   return { ok: true, message: "Objetivos guardados" };
 }
+
+/** Umbrales del semáforo: verde y amarillo como % del ritmo esperado, y muestra mínima. */
+export async function saveThresholds(businessId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const { supabase } = await loadBusiness(businessId);
+  const green = Number(formData.get("green")) / 100;
+  const yellow = Number(formData.get("yellow")) / 100;
+  const minSample = Number(formData.get("minSample"));
+  if (!(green > 0) || !(yellow > 0) || yellow > green) {
+    return { ok: false, message: "El umbral amarillo tiene que ser menor o igual al verde" };
+  }
+  if (!Number.isInteger(minSample) || minSample < 0) return { ok: false, message: "La muestra mínima es un número entero" };
+  const { error } = await supabase
+    .from("businesses")
+    .update({ semaforo_verde: green, semaforo_amarillo: yellow, muestra_minima: minSample })
+    .eq("id", businessId);
+  if (error) return { ok: false, message: error.message };
+  revalidatePath(`/negocio/${businessId}`, "layout");
+  return { ok: true, message: "Semáforos guardados" };
+}

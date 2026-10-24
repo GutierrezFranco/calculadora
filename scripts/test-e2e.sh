@@ -4,6 +4,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 npx supabase db reset >/dev/null
+sleep 3 # PostgREST recarga el esquema después del reset
 node tests/e2e/flujo.mjs
 node tests/e2e/pipeline.mjs
 node tests/e2e/importar.mjs
+node tests/e2e/v1b.mjs

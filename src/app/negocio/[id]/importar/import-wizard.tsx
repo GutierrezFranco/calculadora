@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import {
   IMPORT_FIELDS,
   guessMapping,
+  parseProspects,
   parseSales,
   parseTallies,
   type Cell,
@@ -19,6 +20,14 @@ interface Sheet {
   name: string;
   rows: Cell[][];
 }
+
+const KIND_NOUN: Record<ImportKind, string> = { ventas: "ventas", consultas: "días", prospectos: "prospectos" };
+
+const PREVIEW_HEADERS: Record<ImportKind, string[]> = {
+  ventas: ["Fecha", "Monto", "Cobrado", "Costo", "Qué", "Cliente", "Teléfono"],
+  consultas: ["Fecha", "Consultas"],
+  prospectos: ["Negocio", "Contacto", "Teléfono", "Email", "Ciudad", "Origen"],
+};
 
 async function readFile(file: File): Promise<Sheet[]> {
   if (/\.(csv|txt)$/i.test(file.name)) {
@@ -46,13 +55,16 @@ export function ImportWizard({
   timezone,
   currency,
   today,
+  initialKind,
 }: {
   businessId: string;
   timezone: string;
   currency: string;
   today: string;
+  /** Tipo con el que arranca (la pantalla de prospección abre en "prospectos"). */
+  initialKind?: ImportKind;
 }) {
-  const [kind, setKind] = useState<ImportKind>("ventas");
+  const [kind, setKind] = useState<ImportKind>(initialKind ?? "ventas");
   const [file, setFile] = useState<{ name: string; hash: string; sheets: Sheet[] } | null>(null);
   const [sheetIndex, setSheetIndex] = useState(0);
   const [headerRow, setHeaderRow] = useState(0);
@@ -68,12 +80,16 @@ export function ImportWizard({
     if (!file) return null;
     const dataRows = rows.slice(headerRow + 1);
     const options = { timezone, currency, today, normalizePhone: (raw: string) => normalizePhone(raw, timezone) };
-    return kind === "ventas"
-      ? parseSales(dataRows, mapping, options, headerRow + 2)
-      : parseTallies(dataRows, mapping, options, headerRow + 2);
+    if (kind === "ventas") return parseSales(dataRows, mapping, options, headerRow + 2);
+    if (kind === "prospectos") return parseProspects(dataRows, mapping, options, headerRow + 2);
+    return parseTallies(dataRows, mapping, options, headerRow + 2);
   }, [file, kind, rows, mapping, timezone, currency, today, headerRow]);
 
-  const missing = IMPORT_FIELDS[kind].filter((f) => f.required && (mapping[f.id] === undefined || mapping[f.id] === null));
+  const mapped = (id: string) => mapping[id as keyof Mapping] !== undefined && mapping[id as keyof Mapping] !== null;
+  const missing: { label: string }[] = IMPORT_FIELDS[kind].filter((f) => f.required && !mapped(f.id));
+  if (kind === "prospectos" && !["nombre", "empresa", "telefono"].some(mapped)) {
+    missing.push({ label: "al menos nombre, negocio o teléfono" });
+  }
 
   async function onFile(selected: File | undefined) {
     setResult(null);
@@ -124,6 +140,7 @@ export function ImportWizard({
             [
               ["ventas", "Ventas ya cerradas (una fila por venta)"],
               ["consultas", "Consultas por día (fecha y cantidad)"],
+              ["prospectos", "Base de prospección"],
             ] as const
           ).map(([value, label]) => (
             <label key={value} className="flex items-center gap-2">
@@ -222,7 +239,7 @@ export function ImportWizard({
           ) : (
             <>
               <p className="mb-3 text-sm">
-                <strong>{parsed.rows.length}</strong> {kind === "ventas" ? "ventas" : "días"} listas para importar
+                <strong>{parsed.rows.length}</strong> {KIND_NOUN[kind]} {kind === "prospectos" ? "listos" : "listas"} para importar
                 {total && Object.keys(total).length > 0 && <> por {formatMoney(total)}</>}
                 {parsed.errors.length > 0 && (
                   <>
@@ -239,9 +256,11 @@ export function ImportWizard({
                 <table className="w-full whitespace-nowrap text-xs">
                   <thead className="bg-neutral-50 text-left dark:bg-neutral-900">
                     <tr>
-                      {kind === "ventas"
-                        ? ["Fecha", "Monto", "Cobrado", "Costo", "Qué", "Cliente", "Teléfono"].map((h) => <th key={h} className="px-2 py-1 font-medium">{h}</th>)
-                        : ["Fecha", "Consultas"].map((h) => <th key={h} className="px-2 py-1 font-medium">{h}</th>)}
+                      {PREVIEW_HEADERS[kind].map((h) => (
+                        <th key={h} className="px-2 py-1 font-medium">
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -257,10 +276,18 @@ export function ImportWizard({
                             <td className="px-2 py-1">{r.cliente ?? "—"}</td>
                             <td className="px-2 py-1">{r.telefono ?? "—"}</td>
                           </>
-                        ) : (
+                        ) : "consultas" in r ? (
                           <>
                             <td className="px-2 py-1">{r.fecha}</td>
                             <td className="px-2 py-1">{r.consultas}</td>
+                          </>
+                        ) : (
+                          <>
+                            {[r.empresa, r.nombre, r.telefono, r.email, r.ciudad, r.origen].map((v, j) => (
+                              <td key={j} className="px-2 py-1">
+                                {v ?? "—"}
+                              </td>
+                            ))}
                           </>
                         )}
                       </tr>
