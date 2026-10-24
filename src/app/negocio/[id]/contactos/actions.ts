@@ -16,7 +16,7 @@ export async function updateContact(businessId: string, contactId: string, _prev
       name: String(formData.get("name") ?? "").trim() || null,
       notes: String(formData.get("notes") ?? "").trim() || null,
     })
-    .eq("id", contactId);
+    .eq("business_id", businessId).eq("id", contactId);
   if (error) return { ok: false, message: error.message };
   revalidatePath(`/negocio/${businessId}`, "layout");
   return { ok: true, message: "Contacto guardado" };
@@ -42,6 +42,8 @@ export async function mergeContacts(businessId: string, keepId: string, _prev: F
   if (!removeId) return { ok: false, message: "Elegí el contacto duplicado" };
   if (formData.get("confirm") !== "on") return { ok: false, message: "Confirmá que son la misma persona" };
   const supabase = await createClient();
+  const { data: scoped } = await supabase.from("contacts").select("id").eq("business_id", businessId).in("id", [keepId, removeId]);
+  if (scoped?.length !== 2) return { ok: false, message: "Elegí dos clientes de este negocio" };
   const { error } = await supabase.rpc("fusionar_contactos", { p_keep: keepId, p_remove: removeId });
   if (error) return { ok: false, message: error.message };
   revalidatePath(`/negocio/${businessId}`, "layout");

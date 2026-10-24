@@ -73,7 +73,7 @@ export function assessQuality(input: QualityInput): DataQuality {
   const origenVentas: Partial<Record<DataChannel, number>> = {};
   for (const s of data.sales) {
     if (s.status !== "vigente" || !instantInPeriod(s.wonAt, period, tz)) continue;
-    const channel = oppById.get(s.opportunityId)?.channel ?? "manual";
+    const channel = oppById.get(s.opportunityId ?? "")?.channel ?? "manual";
     origenVentas[channel] = (origenVentas[channel] ?? 0) + 1;
   }
 
@@ -85,7 +85,7 @@ export function assessQuality(input: QualityInput): DataQuality {
   const labels: DataQuality["labels"] = {
     consultas: m.consultasCalificadas === null ? "desconocido" : loadedShare >= 0.8 || (close?.cobertura ?? 0) >= 0.95 ? "real" : "estimado",
     cierre: !close || close.ratio === null ? "desconocido" : (close.cobertura ?? 0) >= MIN_COVERAGE ? "real" : "estimado",
-    facturacion: m.facturacionPactada === null ? "desconocido" : "real",
+    facturacion: m.facturacionPactada === null ? "desconocido" : (data.operations ?? []).some((o) => o.commercialStatus === "ganada" && o.agreedAmount === null && o.occurredAt && instantInPeriod(o.occurredAt, period, tz)) ? "estimado" : "real",
     ganancia: m.contribucion === null ? "desconocido" : m.contribucion.ventasSinCosto > 0 ? "estimado" : "real",
   };
 

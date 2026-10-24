@@ -1,3 +1,4 @@
+import type { Operation } from "./operations";
 // Modelo de dominio de MDM OS. Sin dependencias de base de datos ni de pantallas:
 // las reglas comerciales se calculan sobre estos objetos y se testean aisladas.
 
@@ -86,7 +87,8 @@ export type SaleStatus = "vigente" | "revertida";
 export interface Sale {
   id: string;
   businessId: string;
-  opportunityId: string;
+  opportunityId: string | null;
+  operationId?: string | null;
   contactId: string;
   /** Monto pactado original. Los ajustes no lo modifican: se registran aparte. */
   amount: Money;
@@ -104,13 +106,14 @@ export type PaymentKind = "sena" | "anticipo" | "saldo" | "pago_total" | "devolu
 export interface Payment {
   id: string;
   businessId: string;
-  opportunityId: string;
+  opportunityId: string | null;
+  operationId?: string | null;
   /** null mientras la seña está asociada solo a la oportunidad. */
   saleId: string | null;
   /** Siempre positivo; una devolución resta por su tipo. */
   amount: Money;
   kind: PaymentKind;
-  paidAt: Instant;
+  paidAt: Instant | null;
   /** En una devolución, el cobro original que devuelve. */
   refundsPaymentId: string | null;
   /** Cotización del negocio (moneda local por 1 USD) vigente al registrar el cobro. */
@@ -189,6 +192,7 @@ export interface FunnelActivity {
 
 /** Todos los registros de un negocio que alimentan las métricas. */
 export interface BusinessData {
+  operations?: Operation[];
   business: Business;
   opportunities: Opportunity[];
   sales: Sale[];

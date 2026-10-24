@@ -13,7 +13,7 @@ export const IMPORT_FIELDS = {
   ventas: [
     { id: "fecha", label: "Fecha", required: true },
     { id: "monto", label: "Monto de la venta", required: true },
-    { id: "cobrado", label: "Cobrado (vacío = todo)", required: false },
+    { id: "cobrado", label: "Cobrado (vacío = desconocido)", required: false },
     { id: "costo", label: "Costo directo", required: false },
     { id: "descripcion", label: "Qué se vendió", required: false },
     { id: "cliente", label: "Cliente", required: false },

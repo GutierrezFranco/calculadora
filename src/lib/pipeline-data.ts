@@ -35,7 +35,8 @@ const COLUMNS = `id, stage, need, created_at, last_interaction_at, next_follow_u
   contacts(name, contact_phones(phone_e164)), quotes(amount, currency, version), sales(amount, currency, status)`;
 
 function toCard(r: Row): PipelineCard {
-  const sale = r.sales.find((s) => s.status === "vigente");
+  const active = r.sales.filter((s) => s.status === "vigente");
+  const sale = active.length && active.every((s) => s.currency === active[0].currency) ? { amount: active.reduce((n, s) => n + Number(s.amount), 0), currency: active[0].currency } : null;
   const quote = [...r.quotes].sort((a, b) => b.version - a.version)[0];
   const value = sale ?? quote ?? null;
   return {
@@ -101,7 +102,7 @@ export interface OpportunityDetail extends PipelineCard {
     wonAt: string;
     status: "vigente" | "revertida";
   } | null;
-  payments: { id: string; amount: number; currency: string; kind: string; method: string | null; paidAt: string }[];
+  payments: { id: string; amount: number; currency: string; kind: string; method: string | null; paidAt: string | null }[];
 }
 
 export async function loadOpportunity(supabase: SupabaseClient, oppId: string): Promise<OpportunityDetail | null> {
@@ -133,7 +134,7 @@ export async function loadOpportunity(supabase: SupabaseClient, oppId: string): 
     attribution_touchpoints: { id: string; evidence: string | null; funnels: { name: string } | null }[];
     quotes: { id: string; version: number; amount: number; currency: string; quoted_at: string }[];
     sales: { id: string; amount: number; currency: string; direct_cost: number | null; won_at: string; status: "vigente" | "revertida" }[];
-    payments: { id: string; amount: number; currency: string; kind: string; method: string | null; paid_at: string }[];
+    payments: { id: string; amount: number; currency: string; kind: string; method: string | null; paid_at: string | null }[];
   };
   // Si hubo una venta revertida y otra vigente, se muestra la vigente.
   const sale = r.sales.find((s) => s.status === "vigente") ?? r.sales[0] ?? null;
@@ -164,7 +165,7 @@ export async function loadOpportunity(supabase: SupabaseClient, oppId: string): 
       : null,
     payments: r.payments
       .map((p) => ({ id: p.id, amount: Number(p.amount), currency: p.currency, kind: p.kind, method: p.method, paidAt: p.paid_at }))
-      .sort((a, b) => a.paidAt.localeCompare(b.paidAt)),
+      .sort((a, b) => (a.paidAt ?? "").localeCompare(b.paidAt ?? "")),
   };
 }
 

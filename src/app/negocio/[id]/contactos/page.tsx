@@ -6,7 +6,7 @@ import { formatDateTime } from "@/lib/format";
 type Row = {
   id: string;
   name: string | null;
-  first_contact_at: string;
+  first_contact_at: string | null;
   contact_phones: { phone_e164: string }[];
   opportunities: { id: string }[];
   sales: { status: string }[];
@@ -67,7 +67,7 @@ export default async function ContactsPage({
                   </span>
                   <span className="text-xs text-neutral-500">
                     {c.opportunities.length} oportunidades · {c.sales.filter((s) => s.status === "vigente").length} compras · desde{" "}
-                    {formatDateTime(c.first_contact_at, business.timezone).split(",")[0]}
+                    {(c.first_contact_at ? formatDateTime(c.first_contact_at, business.timezone).split(",")[0] : "Fecha desconocida")}
                   </span>
                 </Link>
               </li>

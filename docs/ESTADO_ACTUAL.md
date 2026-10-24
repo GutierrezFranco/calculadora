@@ -2,7 +2,7 @@
 
 Actualizado: 24/10/2026 (America/Buenos_Aires).
 Repositorio: `GutierrezFranco/calculadora`.
-Base funcional inspeccionada: `main` en `0487ffcd4c6e11e82abb9d1edda5c6d0b3d70962`.
+Base funcional inspeccionada: `main` en `91f48d8ae78a4b1bc6b5974d2aea6e3d9def2f0e`.
 
 Este documento es el índice vigente de decisiones, evidencia y pendientes.
 [estado.md](estado.md) conserva el registro histórico de construcción;
@@ -11,38 +11,31 @@ Este documento es el índice vigente de decisiones, evidencia y pendientes.
 
 ## 1. Autorización actual
 
-El propietario aprobó la dirección funcional y el diseño general de V1.4.
-**Solo está autorizada la coordinación documental**: actualizar `AGENTS.md`,
-crear este archivo y `docs/SESION_ACTUAL.md`, validar y presentar un PR.
+PR #6 fusionado y primera etapa funcional autorizada explícitamente:
+clientes y operaciones, migración y pruebas locales, rama y PR independientes.
+No hacer merge. No mutar Supabase/Vercel productivos ni iniciar marketing mensual,
+IA o integración WhatsApp.
 
-La próxima etapa será clientes y operaciones, pero **no está autorizada su
-implementación todavía**. No iniciar código, migraciones o integraciones por
-haber sido aprobado el diseño. No hacer merge sin autorización.
-Supabase y Vercel productivos permanecen fuera del alcance.
+## 2. Estado implementado en la rama de esta entrega
 
-Fuente de las decisiones: aprobación explícita del propietario del 24/10/2026,
-después del brief «MDM OS — Rediseño prioritario de la carga de datos (V1.4)».
-Este resumen permite el relevo sin depender del acceso a los chats.
+Rama `feature/v14-clientes-operaciones`, basada en main `91f48d8`.
+Ver [contrato, límites y recorrido de prueba](clientes-operaciones-v1-4.md).
 
-## 2. Estado observado y límites de la verificación
-
-| Área | Evidencia en la base inspeccionada | Verificación |
+| Área | Implementado | Evidencia |
 |---|---|---|
-| V1A, V1B y V1.3 | Declaradas completas en [estado.md](estado.md); módulos y pruebas presentes | Lectura de código y documentación; suites no ejecutadas en esta sesión |
-| GitHub | PR #4 (V1.3) y #5 (menú) fusionados; sin PR abiertos antes de esta tarea | Consulta remota del 24/10/2026 |
-| Clientes | `contacts`, `contact_phones`, ficha, búsqueda y fusión manual | Código observado; no validación de producción |
-| Carga actual | Consultas diarias y venta rápida, sin necesidad de oportunidad previa en la UI | No resuelve todavía el flujo de operaciones de V1.4 |
-| Embudos | Plantillas/versiones, actividad, atribución principal y touchpoints | La migración incluye WhatsApp y perfil Instagram como plantillas distintas |
-| Importación | Excel/CSV, selección de hoja, mapeo, lotes, coincidencias y referencias externas | No admite aún el reporte mensual completo de V1.4 |
-| Google Sheets | Lectura por enlace compartido y sincronización solicitada por el usuario | Descarga real no probada en esta sesión; sin OAuth |
-| Paneles | Inicio autenticado, embudos, mentor, ficha 360°, calidad y cohortes | Código observado; funcionamiento desplegado no homologado |
-| Vercel/Supabase activos | Commit desplegado, migraciones aplicadas y configuración activa | No verificados ni modificados en esta sesión |
+| Carga rápida | Cliente existente/nuevo, WhatsApp opcional, datos parciales, estados separados, guardar y otra | Navegador 390/1440 px con API/base reales locales y Auth simulado |
+| Relaciones | Cliente 1:N operaciones, consulta real opcional 1:N operaciones, ventas/pagos reutilizados | Pruebas SQL locales y dominio |
+| Historial y correcciones | Ficha de cliente, edición con versión, cobros y cancelaciones por operación, fusión preservada | Navegador y SQL |
+| Duplicados/aislamiento | Solicitud idempotente, teléfono/referencia, revisión de similitudes, RLS/FKs por negocio | SQL, compatibilidad V1.3 |
+| Importación | Circuito V1.3 conservado, ventas generan operación; cobrado vacío permanece desconocido | Regresión SQL; no importación de datos reales |
+| Dashboard/pipeline | Consultas distintas de trabajos, clientes únicos, alertas de datos faltantes; pipeline opcional | 72 pruebas de dominio y navegador de operaciones |
+| Producción | Sin cambios ni validación del despliegue | No aplicar esta migración a producción en esta sesión |
 
-La existencia de un archivo, pantalla o prueba no demuestra ejecución exitosa.
-No hay un checkout completo ni dependencias instaladas para esta tarea; la
-inspección y publicación se realizan con el conector GitHub.
+Se utilizó checkout completo con dependencias. TypeScript, ESLint, build con `--webpack` y suite SQL
+local ejecutados; ver detalle y limitaciones del entorno en [sesión](SESION_ACTUAL.md).
+La suite completa e2e con Supabase Auth real queda pendiente.
 
-## 3. Decisiones funcionales aprobadas de V1.4 — no implementadas
+## 3. Decisiones funcionales aprobadas de V1.4 — implementación incremental
 
 ### 3.1. Entrada simple y dos cargas principales
 
@@ -134,28 +127,28 @@ IA, lectura WhatsApp y Meta quedan después de esta prioridad.
 El roadmap formativo de MDM es un proyecto paralelo; no implementarlo aquí.
 Stock, contabilidad integral, caja, sucursales y empleados no integran este alcance.
 
-## 4. Limitaciones conocidas — siguen presentes en el código
+## 4. Limitaciones conocidas — estado después de la primera etapa
 
 | Limitación | Evidencia | Consecuencia / trabajo pendiente |
 |---|---|---|
-| Una venta vigente por oportunidad | `sales_one_active_per_opportunity` en migración V1A; funciones de cobro/reversión y `src/lib/pipeline-data.ts` asumen una venta | Adaptar y probar una consulta con varias operaciones, cobros y cancelaciones independientes |
-| Venta rápida siempre ganada/completada y cobrado vacío = total | `src/app/negocio/[id]/actions.ts`, carga UI y `registrar_venta_rapida` | No apta todavía para pendientes ni cobros desconocidos de V1.4 |
-| Cobrado vacío en importación = monto | `src/domain/import.ts`; `app.apply_row` y `decidir_fila` en migración V1.3 | Puede crear cobros sin evidencia; corregir en etapa autorizada |
+| Venta única por oportunidad | Corregida: una por operación; consulta admite varias | SQL y métricas actualizados; cobros ambiguos exigen elegir trabajo |
+| Venta rápida antigua | Reemplazada en Registrar por operaciones y estados separados | RPC legado conservado para compatibilidad; no usarlo para reparaciones pendientes |
+| Cobrado vacío en importación | Corregido en acciones/RPC de ingestión | No se corrigen pagos históricos ya inventados sin evidencia |
 | Consulta vacía puede convertirse en cero | `parseTallies` en `src/domain/import.ts` | Diferenciar ausencia y cero antes de aplicar |
 | Mapeo por palabras parciales | `guessMapping`: «celular» puede tomar una columna de modelo como teléfono | Validar con encabezados reales y confirmar mapeos |
 | Sin interpretación de estado/origen por fila | Tipos y mapeo de importación; embudo elegido para el lote | No importar pendientes como ganadas ni atribuir fuentes mezcladas |
 | Fuente genérica «archivo»; referencias no reconcilian cambios | `prepareImport` y deduplicación V1.3 | Diferenciar sistemas y revisar correcciones; probar concurrencia |
 | Original de fila incompleto y errores de sync no expuestos | `stageRows` no envía `raw`; `syncSource` usa filas válidas sin presentar errores del parser | Completar trazabilidad y explicar aplicaciones parciales |
-| Ficha parcial y selección de cliente ausente en carga rápida | `contactos/[cid]/page.tsx`, `app.contact_for` | Añadir cobros/historial y selección explícita sin duplicar clientes |
-| Algunos accesos a contacto solo filtran por su ID | Ficha y acciones de contactos | Validar también negocio de ruta en servidor; probar accesos cruzados |
+| Ficha y selección de cliente | Corregidas en carga rápida y detalle | Identidades externas de WhatsApp quedan pendientes |
+| Accesos a contacto | Ficha y edición filtran por negocio e ID | RLS/FKs conservadas; no es auditoría completa del producto |
 | Teléfono normalizado de forma básica | `src/lib/phone.ts` | No garantiza equivalencias de todos los formatos; ampliar casos antes de deduplicar |
 | Sin reporte mensual completo conectado a resultados | Ingestión admite ventas, oportunidades, totales diarios y prospectos | Incorporar agregados versionados sin fabricar fechas/identidades |
 | Demo conserva dashboard anterior | `src/app/demo/page.tsx` y `src/components/dashboard.tsx` | Texto de cierre difiere de cohortes; verificar paridad con app autenticada |
 | Publicidad resumida por canal y prorrateo temporal | `computeAds` en `src/domain/sources.ts` | No equivale todavía al costo de adquisición por embudo de V1.4 |
 | Deshacer importación elimina registros | `deshacer_importacion` V1.3 | Revisar historial y modificaciones posteriores antes de reutilizar como rollback |
 
-Estas observaciones son de lectura, no una homologación de seguridad completa ni
-pruebas ejecutadas. Las correcciones están pendientes; este PR no las aplica.
+Las filas marcadas corregidas tienen validación local; el resto permanece pendiente.
+No equivalen a homologación de producción ni auditoría completa de seguridad.
 
 ## 5. Caso de aceptación real y pendientes técnicos
 
@@ -167,17 +160,16 @@ representarlos. Histórico con años/fechas ambiguos requiere revisión.
 Los archivos reales y datos personales se mantienen fuera del repositorio.
 Pruebas automatizadas con fixtures ficticios o anonimizados.
 
-Antes de la etapa funcional deben concretarse la persistencia de operaciones y
-agregados, compatibilidad con relaciones V1.3, cobros/fechas desconocidos, índices,
-reglas de corrección e identificación de cliente nuevo. El diseño funcional está
-aprobado; no hay DDL, tabla nueva ni contrato SQL implementados por este PR.
+Persistencia de operaciones y compatibilidad V1.3 implementadas en esta entrega.
+Los agregados mensuales y adquisición de clientes nuevos siguen pendientes.
+No se cargó el archivo real de Facu ni se inventaron importes.
 
 ## 6. Secuencia de trabajo y aceptación
 
 | Orden | Entrega | Estado |
 |---|---|---|
-| 0 | Protocolo documental y PR de estos tres archivos | Único trabajo autorizado ahora; ver sesión |
-| 1 | Clientes y operaciones: selección/creación, historial, vínculos 1:N y origen sencillo; históricos parciales | Esperar autorización explícita; alcance y pruebas en una rama nueva |
+| 0 | Protocolo documental y PR de estos tres archivos | PR #6 fusionado |
+| 1 | Clientes y operaciones: selección/creación, historial, vínculos 1:N y origen sencillo; históricos parciales | Implementado en rama independiente; pendiente revisión/merge autorizado |
 | 2 | Carga rápida/onboarding, marketing por período, adaptación de importación y dashboard | Diseño aprobado; dividir y autorizar cada incremento |
 | Posterior | IA y conectores | Fuera de esta etapa |
 

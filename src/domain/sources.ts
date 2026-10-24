@@ -68,7 +68,9 @@ export function computeBySource(data: BusinessData, period: Period): SourceRow[]
   }
   for (const s of data.sales) {
     if (s.status !== "vigente" || !within(s.wonAt)) continue;
-    const r = row(sourceOf.get(s.opportunityId) ?? "desconocido");
+    const operation = (data.operations ?? []).find((o) => o.id === s.operationId);
+    const operationSource = operation ? data.funnels?.find((f) => f.id === operation.funnelId)?.channel : undefined;
+    const r = row(operation ? operationSource ?? "desconocido" : sourceOf.get(s.opportunityId ?? "") ?? "desconocido");
     r.ganadas++;
     r.contactIds.add(s.contactId);
     addTo(r.facturacion, effectiveSaleAmount(s, data.adjustments));

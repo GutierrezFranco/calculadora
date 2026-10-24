@@ -20,7 +20,8 @@ export function computeFunnel(data: BusinessData, period: Period): FunnelStep[] 
   const consultas = computeMetrics(data, period).consultasCalificadas;
   const cohort = data.opportunities.filter((o) => instantInPeriod(o.createdAt, period, tz));
   const quoted = new Set(data.quotedOpportunityIds ?? []);
-  const saleByOpp = new Map(data.sales.filter((s) => s.status === "vigente").map((s) => [s.opportunityId, s]));
+  const saleByOpp = new Map<string, typeof data.sales>();
+  for (const s of data.sales) if (s.status === "vigente" && s.opportunityId) saleByOpp.set(s.opportunityId, [...(saleByOpp.get(s.opportunityId) ?? []), s]);
 
   const presupuestadas = cohort.filter(
     // "En seguimiento" no implica presupuesto: cuenta solo si hubo uno registrado.
@@ -28,14 +29,15 @@ export function computeFunnel(data: BusinessData, period: Period): FunnelStep[] 
   );
   const ganadas = cohort.filter((o) => saleByOpp.has(o.id));
   const cobradas = ganadas.filter((o) => {
-    const sale = saleByOpp.get(o.id)!;
-    const amount = effectiveSaleAmount(sale, data.adjustments);
-    let paid = 0;
-    for (const p of data.payments.filter((p) => p.opportunityId === o.id)) {
-      const value = convert(p.amount, amount.currency, p.usdRate);
-      if (value) paid += p.kind === "devolucion" ? -value.amount : value.amount;
-    }
-    return paid >= amount.amount;
+    return saleByOpp.get(o.id)!.every((sale) => {
+      const amount = effectiveSaleAmount(sale, data.adjustments);
+      let paid = 0;
+      for (const p of data.payments.filter((p) => p.saleId === sale.id || (p.saleId === null && ((p.operationId && p.operationId === sale.operationId) || (!p.operationId && p.opportunityId === o.id && saleByOpp.get(o.id)!.length === 1 && (data.operations ?? []).filter((op) => op.opportunityId === o.id).length <= 1))))) {
+        const value = convert(p.amount, amount.currency, p.usdRate);
+        if (value) paid += p.kind === "devolucion" ? -value.amount : value.amount;
+      }
+      return paid >= amount.amount;
+    });
   });
 
   const counts: [string, number | null][] = [

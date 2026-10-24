@@ -1,3 +1,4 @@
+import { operationsInPeriod } from "./operations";
 // Resultados por embudo (docs/arquitectura-v1-3.md §2). Cada oportunidad tiene un solo
 // embudo principal y la venta lo hereda: operaciones y facturación suman exacto entre
 // embudos. Un cliente con ventas en dos embudos aparece en ambos, así que los clientes
@@ -102,11 +103,12 @@ export function computeFunnelReport(data: BusinessData, period: Period): FunnelR
   let totalVentas = 0;
   for (const s of data.sales) {
     if (s.status !== "vigente" || !instantInPeriod(s.wonAt, period, tz)) continue;
-    const o = oppById.get(s.opportunityId);
-    const k = keyOf(o?.funnelId);
+    const o = oppById.get(s.opportunityId ?? "");
+    const operation = (data.operations ?? []).find((op) => op.id === s.operationId);
+    const k = keyOf(operation ? operation.funnelId : o?.funnelId);
     const acc = sales.get(k) ?? { ventas: 0, directas: 0, contacts: new Set(), facturacion: {} };
     acc.ventas++;
-    if (o && !isInquiry(o)) acc.directas++;
+    if (!o || !isInquiry(o)) acc.directas++;
     acc.contacts.add(s.contactId);
     const amount = effectiveSaleAmount(s, data.adjustments);
     addTo(acc.facturacion, amount);
@@ -116,6 +118,13 @@ export function computeFunnelReport(data: BusinessData, period: Period): FunnelR
     sales.set(k, acc);
   }
 
+  for (const op of operationsInPeriod(data, period)) {
+    if (op.commercialStatus !== "ganada" || data.sales.some((s) => s.operationId === op.id)) continue;
+    const k = keyOf(op.funnelId);
+    const acc = sales.get(k) ?? { ventas: 0, directas: 0, contacts: new Set<string>(), facturacion: {} };
+    acc.ventas++; if (!op.opportunityId) acc.directas++;
+    acc.contacts.add(op.contactId); allContacts.add(op.contactId); totalVentas++; sales.set(k, acc);
+  }
   const result = (funnel: Funnel | null, recibidasExtra = 0): FunnelResult => {
     const k = keyOf(funnel?.id);
     const cohort = cohorts.get(k) ?? [];

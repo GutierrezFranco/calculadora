@@ -80,16 +80,22 @@ await page.getByText("Sin datos").first().waitFor();
 check(true, "negocio nuevo muestra Sin datos, no ceros");
 
 await page.goto(`${BASE}/negocio/${ownId}/cargar`);
+await page.getByText("También puedo cargar consultas del día", { exact: true }).click();
 await page.fill("input[name=count]", "12");
 await page.click("button:has-text('Guardar consultas')");
 await page.getByText("Guardado: 12 consultas").waitFor();
+await page.getByRole("button", { name: "+ Crear cliente", exact: true }).click();
+await page.fill("input[name=name]", "Cliente ficticio venta rápida");
 await page.fill("input[name=description]", "Cambio de módulo");
-await page.fill("input[name=amount]", "100.000");
+await page.selectOption("select[name=commercial]", "ganada");
+await page.getByText("Cobros, costos y más detalles (opcional)", { exact: true }).click();
+await page.fill("input[name=paidDate]", await page.locator("input[name=date]").first().inputValue());
+await page.fill("input[name=price]", "100.000");
 await page.fill("input[name=paid]", "50.000");
 await page.fill("input[name=cost]", "35.000");
 await page.fill("input[name=phone]", "11 2345 6789");
-await page.click("button:has-text('Registrar venta')");
-await page.getByText("Venta registrada").waitFor();
+await page.click("button:has-text('Guardar y cargar otra')");
+await page.getByText("Operación guardada").waitFor();
 await shot("cargar");
 
 await page.goto(`${BASE}/negocio/${ownId}`);
