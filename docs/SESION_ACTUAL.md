@@ -1,72 +1,83 @@
-# Sesión actual — coordinación documental V1.4
+# Sesión actual — V1.4 etapa 1: clientes y operaciones
 
-Fecha: 24/10/2026 (America/Buenos_Aires).
-Responsable: Codex.
-Estado: coordinación documental terminada; PR #6 abierto, pendiente de revisión y sin merge.
+Fecha: 24/10/2026. Responsable: Codex.
+Estado: implementado; [PR #7](https://github.com/GutierrezFranco/calculadora/pull/7) abierto, pendiente revisión. No hacer merge.
 
-## Alcance y autorización
+## Alcance autorizado
 
-Autorizado: actualizar `AGENTS.md`, crear `docs/ESTADO_ACTUAL.md` y este relevo,
-validar la documentación y abrir un PR a `main`.
+El propietario confirmó PR #6 aprobado (main verificado: ya fusionado) y autorizó
+clientes/operaciones, migración y pruebas locales. No autorizó marketing mensual,
+IA, integración/lectura de WhatsApp, merge ni cambios en Supabase/Vercel productivos.
 
-No autorizado en esta sesión: implementar clientes/operaciones, modificar código
-funcional, crear migraciones, leer WhatsApp, hacer merge o mutar producción.
-La dirección funcional de V1.4 está aprobada; la siguiente etapa requiere un
-pedido explícito del propietario. No continuarla al terminar este PR.
-
-## Referencias de trabajo
+## Referencias
 
 - Repositorio: `GutierrezFranco/calculadora`.
-- Rama de entrega: `docs/v14-coordinacion-agentes`.
-- Base de `main` inspeccionada: `0487ffcd4c6e11e82abb9d1edda5c6d0b3d70962`.
-- PR: [#6](https://github.com/GutierrezFranco/calculadora/pull/6), abierto contra `main`.
-- Último commit documental verificado antes de actualizar este relevo:
-  `cd0ff6883a7c664d3c29f45d49f683cfc65046b5`.
-- El commit de cierre incluye esta actualización. Resolver su HEAD vigente en
-  GitHub o con `git rev-parse HEAD`; el SHA del propio commit no se incluye en él.
-- Acceso: conector GitHub y copia local de los documentos para validación;
-  no hay checkout local completo ni cambios locales de Claude visibles.
+- Rama: `feature/v14-clientes-operaciones`.
+- Main verificado al iniciar y antes de entrega:
+  `91f48d8ae78a4b1bc6b5974d2aea6e3d9def2f0e` (merge de #6).
+- PR: [#7](https://github.com/GutierrezFranco/calculadora/pull/7), abierto contra main.
+- Commit funcional verificado: `ee087d7ac5e579d7cc31684f817241757bc29e9a`.
+- El commit de esta entrega incluye el relevo: resolver su SHA con `git rev-parse HEAD`
+  o en el PR; no es posible incluir el SHA de este mismo commit en su contenido.
+- Checkout completo y dependencias instaladas; no se tocaron cambios de Claude.
 
 ## Trabajo realizado
 
-- Leídos instrucciones, README, estado histórico y arquitectura V1.3.
-- Comprobados `main`, árbol remoto y ausencia de PR abiertos al iniciar.
-- Bloque Next.js conservado; protocolo común para ambos agentes añadido.
-- Decisiones V1.4 y tres criterios adicionales registrados en el estado.
-- Separados código observado, diseño aprobado, limitaciones y autorización.
-- No se añadieron esquemas técnicos como decisiones ya implementadas.
+- Tabla `operations` asociada a contactos existentes, consulta opcional 1:N y
+  vínculos a ventas/pagos V1.3. Backfill de ventas sin nuevas consultas.
+- RPC transaccional, idempotencia, versiones, comprobaciones de duplicados,
+  RLS/FKs por negocio, estados separados y datos desconocidos preservados.
+- Registrar con cliente nuevo/existente y detalles opcionales. Guardar y cargar otra;
+  listado, edición, historial del cliente, cobros/devoluciones por trabajo.
+- Métricas y pipeline adaptados para varias operaciones por consulta, sin duplicar
+  consultas, clientes o pagos. Alertas por precio/costo/cobro/fecha desconocidos.
+- Importación existente conservada y cobrado vacío corregido. No se importaron
+  datos reales. Limitaciones del parser/estados y otros pendientes siguen documentados.
+- Bloque Next.js de AGENTS.md conservado íntegro.
 
-Archivos de la entrega: [AGENTS.md](../AGENTS.md),
-[ESTADO_ACTUAL.md](ESTADO_ACTUAL.md) y [SESION_ACTUAL.md](SESION_ACTUAL.md).
-Las especificaciones y `docs/estado.md` quedan como referencia histórica.
+Archivos principales: `src/app/negocio/[id]/operaciones/`, `cargar/page.tsx`,
+`contactos/`, `pipeline/[opp]/page.tsx`, `src/components/app-header.tsx`,
+`src/domain/{operations,metrics,cohort,funnel,funnels,quality,sources,types,import}.ts`,
+`src/lib/{data,pipeline-data}.ts`, acciones de carga y preview de importación.
+Migración: `supabase/migrations/20261026000000_v14_clientes_operaciones.sql`;
+instalador generado con `scripts/build-install-sql.sh`. Pruebas: dominio,
+`tests/db/v14.test.sql`, regresión de deshacer importación, `tests/e2e/operaciones.mjs`
+y selectores de carga actualizados en e2e V1A/V1.3.
 
-## Validaciones
+## Validación ejecutada
 
-Ejecutadas el 24/10/2026 sobre la copia local de estos tres documentos:
+- `npm test`: 72 pruebas, 11 archivos, aprobados.
+- `npx tsc --noEmit`: aprobado.
+- `npx eslint src`: aprobado.
+- `npm run build -- --webpack`: aprobado. El comando predeterminado con Turbopack
+  quedó bloqueado por restricciones de creación de procesos/puertos del entorno;
+  no se cambió el bundler predeterminado del proyecto.
+- `npm run test:db` sobre PostgreSQL 18.4 local, con herramientas cliente 17:
+  suite completa aprobada, instalación vacía, migración sobre datos existentes e
+  igualdad del instalador. No usa una base remota.
+- SQL verifica 1 cliente/1 consulta/2 trabajos, sin consulta ficticia, históricos
+  NULL, reintentos, coincidencias, cancelación/devolución independiente, versiones,
+  fusión, importación vs venta manual, cobrado vacío y aislamiento/RLS.
+- `node tests/e2e/operaciones.mjs`: aprobado en Chromium 390×900 y 1440×1000,
+  con app Next, PostgREST 16.5 y PostgreSQL locales. Auth fue **simulado** por un
+  gateway temporal fuera del repo. Prueba cliente nuevo reutilizado, 3 trabajos,
+  2 sobre una consulta real, edición, dashboard, historial y sin overflow horizontal.
+- `git diff --check`: aprobado. Enlaces locales y bloque Next.js verificados.
 
-- Validación puntual con Python: exactamente tres Markdown, bloque Next.js
-  idéntico al original, 16 enlaces locales resolubles contra el árbol de GitHub,
-  ausencia de whitespace final y decisiones/autorización coherentes. Resultado OK.
-- `git diff --no-index --check /tmp/mdm-coordinacion-base /workspace/mdm-coordinacion-docs`:
-  sin diagnósticos de whitespace; salida 1 por diferencias entre directorios.
-- Lectura remota del commit documental `cd0ff6883a`:
-  los tres contenidos coinciden con los preparados. Comparación con la base:
-  exactamente los tres Markdown esperados; sin cambios de aplicación, SQL,
-  dependencias ni configuración. El cierre vuelve a comprobar archivos y HEAD.
+Limitación de entorno: `supabase start` no pudo completar descarga/arranque por
+límites del registro Docker y espacio del daemon. No se ejecutó la suite completa
+`npm run test:e2e` con Supabase Auth real. Los scripts quedan preparados; repetirlos
+con Supabase local antes de homologar el flujo integral de autenticación.
+Los servicios/herramientas y fixtures de prueba son temporales, ficticios y locales;
+no están incluidos en la entrega ni reemplazan configuración de producción.
 
-No ejecutados: TypeScript, ESLint, build, suites de dominio, SQL o e2e.
-No corresponden a una entrega exclusivamente documental y no se afirma que pasen.
-No se instalaron dependencias ni se ejecutaron consultas SQL.
+## Relevo y cómo probar
 
-## Relevo
+Guía concreta, contrato y limitaciones: [clientes-operaciones-v1-4.md](clientes-operaciones-v1-4.md).
+Estado vigente: [ESTADO_ACTUAL.md](ESTADO_ACTUAL.md).
 
-Supabase/Vercel: sin llamadas de mutación, migraciones ni despliegues manuales.
-Datos reales: sin importaciones ni archivos de clientes en la entrega.
-Bloqueo funcional: esperar autorización para la etapa de clientes y operaciones.
-
-Siguiente paso exacto: el propietario revisa el PR #6. Esperar autorización
-explícita antes de merge o de iniciar clientes y operaciones.
-Tras cualquier autorización nueva, comprobar rama/HEAD/PR y leer
-[estado](ESTADO_ACTUAL.md) y [reglas](../AGENTS.md). La primera etapa prevista
-reutiliza clientes y soporta un cliente con varias operaciones y una consulta con
-varias operaciones; no empezar por conectores ni reescribir V1.3.
+Siguiente paso: revisar este PR, repetir e2e con Supabase local completo y probar
+Registrar → Guardar y cargar otra → Operaciones → Historial del cliente.
+No aplicar la migración en producción, no desplegar, no fusionar ni iniciar la
+siguiente etapa sin autorización. El siguiente agente debe comprobar el HEAD/PR
+real antes de trabajar, leer AGENTS.md y estos documentos.

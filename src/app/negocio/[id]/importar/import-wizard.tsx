@@ -405,7 +405,7 @@ export function ImportWizard({
                           <>
                             <td className="px-2 py-1">{r.fecha.slice(0, 10)}</td>
                             <td className="px-2 py-1">{formatMoney({ [r.moneda]: r.monto })}</td>
-                            <td className="px-2 py-1">{r.cobrado === null ? "todo" : formatMoney({ [r.moneda]: r.cobrado })}</td>
+                            <td className="px-2 py-1">{r.cobrado === null ? "Sin datos" : formatMoney({ [r.moneda]: r.cobrado })}</td>
                             <td className="px-2 py-1">{r.costo === null ? "—" : formatMoney({ [r.moneda]: r.costo })}</td>
                             <td className="px-2 py-1">{r.descripcion ?? "—"}</td>
                             <td className="px-2 py-1">{r.cliente ?? "—"}</td>

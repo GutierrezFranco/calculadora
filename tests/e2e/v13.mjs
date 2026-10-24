@@ -62,11 +62,14 @@ await shot("v13-embudo-detalle");
 
 // Venta directa en el live: suma facturación, no consultas ni cierre.
 await page.goto(`${BASE}/negocio/${businessId}/cargar`);
+await page.getByRole("button", { name: "+ Crear cliente", exact: true }).click();
+await page.fill("input[name=name]", "Cliente ficticio live");
 await page.fill("input[name=description]", "Funda en el live");
-await page.fill("input[name=amount]", "15.000");
+await page.selectOption("select[name=commercial]", "ganada");
+await page.fill("input[name=price]", "15.000");
 await page.selectOption("select[name=funnel]", { label: "TikTok Live" });
-await page.click("button:has-text('Registrar venta')");
-await page.getByText("Venta registrada").waitFor();
+await page.click("button:has-text('Guardar y cargar otra')");
+await page.getByText("Operación guardada").waitFor();
 
 // Consulta por Meta: se gana y se cancela por un problema técnico.
 await page.goto(`${BASE}/negocio/${businessId}/pipeline/nueva`);

@@ -66,6 +66,9 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
   const { user, business, supabase } = await getBusinessForUser(id, "oportunidad");
   const [opp, options] = await Promise.all([loadOpportunity(supabase, oppId), funnelOptions(supabase, id)]);
   if (!opp) notFound();
+  const { data: operations } = await supabase.from("operations").select("id, description, commercial_status, generated_from_sale")
+    .eq("business_id", id).eq("opportunity_id", oppId);
+  const managed = (operations?.length ?? 0) > 1 || operations?.some((o) => !o.generated_from_sale);
 
   const tz = business.timezone;
   const today = localDate(new Date().toISOString(), tz);
@@ -120,7 +123,11 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
           )}
         </header>
 
-        <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {managed && <section className="card mb-6 p-4 text-sm">
+          <h2 className="font-bold">Trabajos de esta consulta</h2><p className="my-2 text-muted">Esta consulta se cuenta una vez. Cargá cobros y cancelaciones desde cada trabajo.</p>
+          <ul>{operations?.map((o) => <li key={o.id}><Link className="text-accent underline" href={`/negocio/${id}/operaciones/${o.id}`}>{o.description}</Link> · {o.commercial_status}</li>)}</ul>
+        </section>}
+        {!managed && <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             ["Presupuesto", lastQuote ? formatMoney({ [lastQuote.currency]: lastQuote.amount }) : "—"],
             ["Venta pactada", sale ? formatMoney({ [sale.currency]: sale.amount }) : "—"],
@@ -132,10 +139,10 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
               <p className="font-semibold tabular-nums">{value}</p>
             </div>
           ))}
-        </section>
+        </section>}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {!won && opp.stage !== "perdido" && (
+          {!managed && !won && opp.stage !== "perdido" && (
             <>
               <Panel title="Ganar: el cliente aceptó y dejó el equipo">
                 <ActionForm action={bind(winOpportunity)} submitLabel="Marcar ganada" className="grid grid-cols-2 gap-3">
@@ -232,7 +239,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
             </>
           )}
 
-          {won && sale && (
+          {!managed && won && sale && (
             <>
               <Panel title="Cobro">
                 <ActionForm action={bind(addPayment)} submitLabel="Registrar cobro" className="grid grid-cols-2 gap-3">

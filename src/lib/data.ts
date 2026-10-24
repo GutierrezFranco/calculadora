@@ -71,38 +71,40 @@ export async function loadBusinessData(supabase: SupabaseClient, business: Busin
     funnel_id: string | null; attribution_confidence: Opportunity["attributionConfidence"]; entry_kind: Opportunity["entryKind"];
     lost_category: Opportunity["lostCategory"]; data_imports: { channel: DataChannel } | null;
   };
-  const [opportunities, sales, payments, adjustments, tallies, quotes, funnels] = await Promise.all([
+  const [opportunities, sales, payments, adjustments, tallies, quotes, funnels, operations] = await Promise.all([
     fetchAll<OppRow>(
       supabase, "opportunities",
       "id, contact_id, created_at, stage, source, lost_at, funnel_id, attribution_confidence, entry_kind, lost_category, data_imports(channel)", id),
-    fetchAll<{ id: string; opportunity_id: string; contact_id: string; amount: number; currency: string; direct_cost: number | null; variable_costs: number | null; won_at: string; status: Sale["status"]; usd_rate: string | null }>(
-      supabase, "sales", "id, opportunity_id, contact_id, amount, currency, direct_cost, variable_costs, won_at, status, usd_rate", id),
-    fetchAll<{ id: string; opportunity_id: string; sale_id: string | null; amount: number; currency: string; kind: Payment["kind"]; paid_at: string; refunds_payment_id: string | null; usd_rate: string | null }>(
-      supabase, "payments", "id, opportunity_id, sale_id, amount, currency, kind, paid_at, refunds_payment_id, usd_rate", id),
+    fetchAll<{ id: string; operation_id: string | null; opportunity_id: string | null; contact_id: string; amount: number; currency: string; direct_cost: number | null; variable_costs: number | null; won_at: string; status: Sale["status"]; usd_rate: string | null }>(
+      supabase, "sales", "id, operation_id, opportunity_id, contact_id, amount, currency, direct_cost, variable_costs, won_at, status, usd_rate", id),
+    fetchAll<{ id: string; operation_id: string | null; opportunity_id: string | null; sale_id: string | null; amount: number; currency: string; kind: Payment["kind"]; paid_at: string | null; refunds_payment_id: string | null; usd_rate: string | null }>(
+      supabase, "payments", "id, operation_id, opportunity_id, sale_id, amount, currency, kind, paid_at, refunds_payment_id, usd_rate", id),
     fetchAll<{ id: string; sale_id: string; kind: SaleAdjustment["kind"]; amount_delta: number; currency: string; at: string; reason: string }>(
       supabase, "sale_adjustments", "id, sale_id, kind, amount_delta, currency, at, reason", id),
     fetchAll<{ id: string; date: string; count: number; method: InquiryTally["method"] }>(
       supabase, "inquiry_tallies", "id, date, count, method", id),
     fetchAll<{ opportunity_id: string }>(supabase, "quotes", "opportunity_id", id),
     loadFunnels(supabase, id),
+    loadOperations(supabase, id),
   ]);
 
   return {
     business: toBusiness(business),
+    operations,
     opportunities: opportunities.map((o) => ({
       id: o.id, businessId: id, contactId: o.contact_id, createdAt: o.created_at,
       stage: o.stage, source: o.source, lostAt: o.lost_at, funnelId: o.funnel_id, attributionConfidence: o.attribution_confidence,
       entryKind: o.entry_kind, lostCategory: o.lost_category, channel: o.data_imports?.channel ?? "manual",
     })),
     sales: sales.map((s) => ({
-      id: s.id, businessId: id, opportunityId: s.opportunity_id, contactId: s.contact_id,
+      id: s.id, businessId: id, operationId: s.operation_id, opportunityId: s.opportunity_id, contactId: s.contact_id,
       amount: { amount: Number(s.amount), currency: s.currency },
       directCost: s.direct_cost === null ? null : { amount: Number(s.direct_cost), currency: s.currency },
       variableCosts: s.variable_costs === null ? null : { amount: Number(s.variable_costs), currency: s.currency },
       wonAt: s.won_at, status: s.status, usdRate: rate(s.usd_rate),
     })),
     payments: payments.map((p) => ({
-      id: p.id, businessId: id, opportunityId: p.opportunity_id, saleId: p.sale_id,
+      id: p.id, businessId: id, operationId: p.operation_id, opportunityId: p.opportunity_id, saleId: p.sale_id,
       amount: { amount: Number(p.amount), currency: p.currency }, kind: p.kind, paidAt: p.paid_at,
       refundsPaymentId: p.refunds_payment_id, usdRate: rate(p.usd_rate),
     })),
@@ -296,4 +298,22 @@ export async function loadProspectStats(supabase: SupabaseClient, businessId: st
     converted: rows.filter((r) => r.converted_at).length,
     clients: rows.filter((r) => r.opportunities?.sales.some((s) => s.status === "vigente")).length,
   };
+}
+
+export interface OperationRow {
+  id: string; business_id: string; contact_id: string; opportunity_id: string | null; occurred_at: string | null;
+  kind: "reparacion" | "venta"; description: string; brand: string | null; model: string | null; reference: string | null;
+  commercial_status: import("@/domain/operations").CommercialStatus; work_status: import("@/domain/operations").WorkStatus;
+  agreed_amount: number | null; currency: string; direct_cost: number | null; payment_known: boolean;
+  funnel_id: string | null; version: number;
+}
+export async function loadOperations(supabase: SupabaseClient, businessId: string) {
+ const rows = await fetchAll<OperationRow>(supabase, "operations", "*", businessId);
+ return rows.map(operationFromRow);
+}
+export function operationFromRow(r: OperationRow): import("@/domain/operations").Operation {
+ return { id:r.id, contactId:r.contact_id, opportunityId:r.opportunity_id, occurredAt:r.occurred_at, kind:r.kind,
+  description:r.description, brand:r.brand, model:r.model, reference:r.reference, commercialStatus:r.commercial_status,
+  workStatus:r.work_status, agreedAmount:r.agreed_amount === null ? null : Number(r.agreed_amount), currency:r.currency,
+  directCost:r.direct_cost === null ? null : Number(r.direct_cost), paymentKnown:r.payment_known, funnelId:r.funnel_id, version:r.version };
 }

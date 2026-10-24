@@ -1,3 +1,4 @@
+import { operationsInPeriod } from "./operations";
 import { cohortResult, countInquiries, inquiryCohort, salesBreakdown, type CohortResult, type SalesBreakdown } from "./cohort";
 import { eachDay, instantInPeriod } from "./dates";
 import { addTo, convert, type MoneyTotals } from "./money";
@@ -66,7 +67,7 @@ function divideTotals(totals: MoneyTotals, counts: Partial<Record<string, number
 
 export function computeMetrics(data: BusinessData, period: Period): PeriodMetrics {
   const tz = data.business.timezone;
-  const within = (instant: string) => instantInPeriod(instant, period, tz);
+  const within = (instant: string | null) => instant !== null && instantInPeriod(instant, period, tz);
   const avisos: string[] = [];
 
   const createdOpps = data.opportunities.filter((o) => within(o.createdAt));
@@ -77,14 +78,17 @@ export function computeMetrics(data: BusinessData, period: Period): PeriodMetric
   const periodTallies = data.tallies.filter((t) => days.has(t.date));
   const reversedInPeriod = data.adjustments.some((a) => a.kind === "anulacion" && within(a.at));
 
+  const operations = operationsInPeriod(data, period);
+  const incompleteWins = operations.filter((o) => o.commercialStatus === "ganada" && !data.sales.some((s) => s.operationId === o.id));
   const hasData =
+    operations.length > 0 ||
     createdOpps.length > 0 ||
     wonSales.length > 0 ||
     lostOpps.length > 0 ||
     periodPayments.length > 0 ||
     periodTallies.length > 0 ||
     reversedInPeriod;
-  if (!hasData) return { period, ...EMPTY, avisos: ["Sin datos para este período"] };
+  if (!hasData) return { period, ...EMPTY, avisos: ["Sin datos para este período", ...((data.operations ?? []).some((o) => o.occurredAt === null) ? ["Hay operaciones sin fecha: completala para incluirlas en un período"] : [])] };
 
   const inquiries = countInquiries(data, period);
   avisos.push(...inquiries.avisos);
@@ -111,7 +115,7 @@ export function computeMetrics(data: BusinessData, period: Period): PeriodMetric
     // Un cobro en otra moneda (venta en pesos cobrada en dólares) se convierte
     // con la cotización que estaba cargada cuando se registró el cobro.
     let paid = 0;
-    for (const p of data.payments.filter((p) => p.opportunityId === sale.opportunityId)) {
+    for (const p of data.payments.filter((p) => p.saleId === sale.id || (p.saleId === null && ((p.operationId && p.operationId === sale.operationId) || (!p.operationId && p.opportunityId !== null && p.opportunityId === sale.opportunityId && data.sales.filter((s) => s.opportunityId === sale.opportunityId && s.status === "vigente").length === 1 && (data.operations ?? []).filter((o) => o.opportunityId === sale.opportunityId).length <= 1))))) {
       const converted = convert(p.amount, amount.currency, p.usdRate);
       if (!converted) {
         avisos.push(`Un cobro en ${p.amount.currency} no tiene cotización para descontarse del saldo`);
@@ -133,23 +137,29 @@ export function computeMetrics(data: BusinessData, period: Period): PeriodMetric
     }
   }
 
-  const ganadas = wonSales.length;
-  const hayContribucion = ganadas === 0 || ventasSinCosto < ganadas;
+  const ganadas = wonSales.length + incompleteWins.length;
+  if (incompleteWins.length) avisos.push(`${incompleteWins.length} operaciones aceptadas sin precio: facturación incompleta`);
+  const unknownPaid = operations.filter((o) => !o.paymentKnown);
+  if (unknownPaid.length) avisos.push(`${unknownPaid.length} operaciones con cobro desconocido`);
+  const undatedPayments = data.payments.filter((p) => p.paidAt === null && operations.some((o) => o.id === p.operationId));
+  if (undatedPayments.length) avisos.push("Hay cobros sin fecha: no se asignan al flujo de caja del mes");
+  if ((data.operations ?? []).some((o) => o.occurredAt === null)) avisos.push("Hay operaciones sin fecha: revisalas en Operaciones para incluirlas en un período");
+  const hayContribucion = ganadas === 0 || ventasSinCosto < wonSales.length;
 
   return {
     period,
-    consultasCalificadas: inquiries.total,
+    consultasCalificadas: inquiries.total === 0 && createdOpps.length === 0 && periodTallies.length === 0 ? null : inquiries.total,
     oportunidadesCreadas: createdOpps.length,
     ventasGanadas: ganadas,
     ventas: salesBreakdown(data, period),
-    clientes: new Set(wonSales.map((s) => s.contactId)).size,
-    facturacionPactada: facturacion,
-    cobrado,
-    saldoPendiente: saldo,
-    contribucion: hayContribucion ? { totals: contribucion, ventasSinCosto } : null,
+    clientes: new Set([...wonSales.map((s) => s.contactId), ...incompleteWins.map((o) => o.contactId)]).size,
+    facturacionPactada: incompleteWins.length > 0 && wonSales.length === 0 ? null : facturacion,
+    cobrado: periodPayments.length === 0 && (unknownPaid.length > 0 || undatedPayments.length > 0) ? null : cobrado,
+    saldoPendiente: unknownPaid.length > 0 || incompleteWins.length > 0 ? null : saldo,
+    contribucion: hayContribucion ? { totals: contribucion, ventasSinCosto: ventasSinCosto + incompleteWins.length } : null,
     tasaCierre: cohortResult(inquiryCohort(data, period), data, inquiries.total),
     ticketPactado: ganadas > 0 ? divideTotals(facturacion, salesPerCurrency) : null,
-    ticketCobrado: ganadas > 0 ? divideTotals(cobradoSobreVentas, salesPerCurrency) : null,
+    ticketCobrado: ganadas > 0 && unknownPaid.length === 0 ? divideTotals(cobradoSobreVentas, salesPerCurrency) : null,
     senasRetenidas: senas,
     avisos,
   };

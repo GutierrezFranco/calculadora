@@ -27,7 +27,9 @@ function whenFor(date: string, timezone: string): string {
 export async function saveTally(businessId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   const { supabase, business } = await loadBusiness(businessId);
   const date = String(formData.get("date") ?? "");
-  const count = Number(formData.get("count"));
+  const rawCount = String(formData.get("count") ?? "").trim();
+  if (!rawCount) return { ok: false, message: "Poné la cantidad o cero si no hubo consultas" };
+  const count = Number(rawCount);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, message: "Elegí la fecha" };
   if (date > localDate(new Date().toISOString(), business.timezone)) {
     return { ok: false, message: "No se cargan consultas de días que todavía no pasaron" };
@@ -51,8 +53,8 @@ export async function quickSale(businessId: string, _prev: FormState, formData: 
   const amount = parseAmount(formData.get("amount"));
   if (!amount) return { ok: false, message: "Poné el monto de la venta" };
   const paidInput = formData.get("paid");
-  const paid = paidInput === null || paidInput === "" ? amount : parseAmount(paidInput);
-  if (paid === null || paid > amount) return { ok: false, message: "Lo cobrado no puede ser mayor que la venta" };
+  const paid = paidInput === null || paidInput === "" ? null : parseAmount(paidInput);
+  if ((paidInput !== null && paidInput !== "" && paid === null) || (paid !== null && paid > amount)) return { ok: false, message: "Lo cobrado no puede ser mayor que la venta" };
   const cost = parseAmount(formData.get("cost"));
   const currency = String(formData.get("currency") ?? business.currency);
   if (currency !== business.currency && currency !== "USD") return { ok: false, message: "Moneda inválida" };

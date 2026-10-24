@@ -69,6 +69,7 @@ select pg_temp.expect_error($$select public.deshacer_importacion('60000000-0000-
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000d1"}', false);
 
 select pg_temp.expect(public.deshacer_importacion('60000000-0000-0000-0000-0000000000d2') = 2, 'deshacer quita las 2 ventas importadas');
+select pg_temp.expect(not exists(select 1 from public.operations op where op.generated_from_sale and not exists(select 1 from public.sales s where s.operation_id=op.id)), 'deshacer no deja operaciones importadas huérfanas');
 select pg_temp.expect((select count(*) from public.sales) = 0 and (select count(*) from public.payments) = 0,
   'sin ventas ni cobros importados');
 select pg_temp.expect((select count(*) from public.contacts where name = 'Importado Demo') = 0,

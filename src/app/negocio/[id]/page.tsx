@@ -254,7 +254,7 @@ export default async function BusinessHomePage({
                 <span className="label-muted">Para hacer hoy</span>
                 <p className="font-semibold">{top ? top.action : "Todo en orden: seguí cargando tus consultas y ventas."}</p>
                 <Link href={`/negocio/${id}/cargar`} className="btn-accent self-start">
-                  Registrar
+                  Registrar reparación o venta
                 </Link>
               </div>
             )}

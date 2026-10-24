@@ -1,3 +1,4 @@
+import { operationsInPeriod } from "./operations";
 // Consultas recibidas y tasa de cierre por cohorte (docs/arquitectura-v1-3.md §1).
 // La cohorte de un período son las consultas identificadas creadas en él; se siguen
 // hasta hoy. Las ventas directas no son consultas y las cancelaciones técnicas son neutras.
@@ -77,6 +78,7 @@ export interface CohortResult {
 /** Cierre de una cohorte de consultas (ya filtradas: del período, y del embudo si corresponde). */
 export function cohortResult(cohort: Opportunity[], data: BusinessData, recibidas: number): CohortResult {
   const won = new Set(data.sales.filter((s) => s.status === "vigente").map((s) => s.opportunityId));
+  for (const op of data.operations ?? []) if (op.commercialStatus === "ganada" && op.opportunityId) won.add(op.opportunityId);
   let ganadas = 0;
   let perdidas = 0;
   let pendientes = 0;
@@ -124,7 +126,15 @@ export function salesBreakdown(data: BusinessData, period: Period): SalesBreakdo
   for (const s of data.sales) {
     if (s.status !== "vigente" || !instantInPeriod(s.wonAt, period, tz)) continue;
     result.total++;
-    const o = oppById.get(s.opportunityId);
+    const o = oppById.get(s.opportunityId ?? "");
+    if (!o || !isInquiry(o)) result.directas++;
+    else if (localDate(o.createdAt, tz) >= period.from) result.deLaCohorte++;
+    else result.deCohortesAnteriores++;
+  }
+  for (const op of operationsInPeriod(data, period)) {
+    if (op.commercialStatus !== "ganada" || data.sales.some((s) => s.operationId === op.id)) continue;
+    result.total++;
+    const o = op.opportunityId ? oppById.get(op.opportunityId) : undefined;
     if (!o || !isInquiry(o)) result.directas++;
     else if (localDate(o.createdAt, tz) >= period.from) result.deLaCohorte++;
     else result.deCohortesAnteriores++;
