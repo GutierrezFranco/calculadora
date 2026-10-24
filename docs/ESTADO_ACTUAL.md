@@ -190,4 +190,3 @@ Antes de esta aplicación el registro remoto estaba vacío aunque V1.3 ya exist�
 No volver a ejecutar esta migración ni usar `db push` indiscriminadamente:
 el historial remoto y los nombres locales requieren conciliación previa.
 No se repararon ni marcaron versiones anteriores en esta sesión.
-
