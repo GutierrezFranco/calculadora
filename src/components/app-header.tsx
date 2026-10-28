@@ -8,14 +8,15 @@ export function AppHeader({ user, businessId }: { user: CurrentUser; businessId?
   const main = businessId
     ? [
         { href: base, label: "Inicio" },
+        { href: `${base}/cargar`, label: "Cargar" },
+        { href: `${base}/publicidad`, label: "Publicidad" },
+        { href: `${base}/operaciones`, label: "Mis trabajos" },
         { href: `${base}/embudos`, label: "Mis embudos" },
-        { href: `${base}/operaciones`, label: "Operaciones" },
-        { href: `${base}/cargar`, label: "Registrar" },
-        { href: `${base}/importar`, label: "Importar" },
       ]
     : [];
   const more = businessId
     ? [
+        { href: `${base}/importar`, label: "Importar" },
         { href: `${base}/pipeline`, label: "Oportunidades (opcional)" },
         { href: `${base}/contactos`, label: "Contactos" },
         { href: `${base}/prospeccion`, label: "Prospección" },

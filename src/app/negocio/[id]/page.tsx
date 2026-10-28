@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { FunnelTable } from "@/components/funnel-table";
+import { FunnelProfit } from "@/components/funnel-profit";
+import { loadFunnelProfit } from "@/lib/profit-data";
 import { MonthlyChart } from "@/components/monthly-chart";
 import { Delta, GoalBar, Kpi, LightPill, MonthNav, QualityBadge, parseMonth } from "@/components/ui";
 import { MIN_COVERAGE } from "@/domain/cohort";
@@ -37,7 +39,7 @@ export default async function BusinessHomePage({
   const currentMonth = today.slice(0, 7);
   const month = parseMonth(query.mes, currentMonth);
   const serie = SERIES.find((s) => s.key === query.serie)?.key ?? "facturacion";
-  const [data, updatedAt, goals, adSnapshots, health, pendingReview, sources] = await Promise.all([
+  const [data, updatedAt, goals, adSnapshots, health, pendingReview, sources, profit] = await Promise.all([
     loadBusinessData(supabase, business),
     lastUpdate(supabase, id),
     loadGoals(supabase, id, `${month}-01`),
@@ -45,6 +47,7 @@ export default async function BusinessHomePage({
     loadPipelineHealth(supabase, id),
     countPendingReview(supabase, id),
     supabase.from("data_sources").select("name, last_synced_at").eq("business_id", id).eq("active", true),
+    loadFunnelProfit(supabase, business, month),
   ]);
 
   const period = monthPeriod(month, today);
@@ -138,6 +141,8 @@ export default async function BusinessHomePage({
           <MonthNav month={month} current={currentMonth} href={(mm) => qs({ mes: mm })} />
         </div>
 
+        <FunnelProfit report={profit} currency={cur} basePath={`/negocio/${id}`} month={month} />
+
         <section aria-label="Indicadores principales" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Kpi
             label="Consultas"
@@ -199,7 +204,7 @@ export default async function BusinessHomePage({
         <section aria-label="Más indicadores" className="card grid grid-cols-2 gap-x-6 gap-y-4 p-5 sm:grid-cols-3 lg:grid-cols-6">
           <div>
             <p className="label-muted flex items-center gap-2">
-              Ganancia <QualityBadge quality={quality.labels.ganancia} />
+              Margen sin publicidad <QualityBadge quality={quality.labels.ganancia} />
             </p>
             <p className="mt-1 text-lg font-bold tabular-nums">{formatMoney(m.contribucion?.totals)}</p>
             <p className="text-xs text-muted">
