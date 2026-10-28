@@ -2,50 +2,46 @@ import Link from "next/link";
 import type { FunnelProfitReport, FunnelProfitRow } from "@/domain/funnel-profit";
 import { formatCount, formatMoney, formatRatio } from "@/lib/format";
 
+const count = (n: number | null) => (n === null ? "—" : formatCount(n));
+const pct = (n: number | null) => (n === null ? "—" : formatRatio(n));
 const plural = (n: number | null, one: string, many: string) => `${formatCount(n)} ${n === 1 ? one : many}`;
 
 /** Rentabilidad por embudo: una tarjeta por embudo con lo que puso, lo que generó y lo que ganó. */
 export function FunnelProfit({ report, currency, basePath, month }: { report: FunnelProfitReport; currency: string; basePath: string; month: string }) {
   const money = (v: number | null) => (v === null ? "—" : formatMoney({ [currency]: Math.round(v) }));
   const { rows, total } = report;
-  return (
-    <section aria-label="Rentabilidad por embudo" className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <h2 className="text-xl font-extrabold">Rentabilidad por embudo</h2>
-        <span className="flex gap-3 text-sm">
-          <Link href={`${basePath}/publicidad?mes=${month}`} className="font-semibold text-accent">
-            Cargar publicidad
-          </Link>
-          <Link href={`${basePath}/cargar`} className="font-semibold text-accent">
+  if (rows.length === 0)
+    return (
+      <section aria-label="Rentabilidad por embudo" className="card flex flex-col items-start gap-3 p-6">
+        <p className="text-lg font-bold">Todavía no cargaste nada este mes.</p>
+        <p className="text-sm text-muted">Cargá tus reparaciones y ventas con su origen, y lo que invertiste en publicidad. El reporte se arma solo.</p>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`${basePath}/cargar`} className="btn-accent">
             Cargar reparación o venta
           </Link>
-        </span>
-      </div>
-
-      {rows.length === 0 ? (
-        <div className="card p-5 text-sm text-muted">
-          Todavía no hay nada este mes. Cargá tus reparaciones y ventas con su origen, y la publicidad del mes: el reporte se arma solo.
+          <Link href={`${basePath}/publicidad?mes=${month}`} className="btn-secondary">
+            Cargar publicidad
+          </Link>
         </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {rows.map((r) => (
-              <Card key={r.funnelId ?? "none"} r={r} money={money} />
-            ))}
-          </div>
-          <div className="card grid grid-cols-2 gap-x-6 gap-y-3 bg-ink p-5 text-white sm:grid-cols-3 lg:grid-cols-6">
-            <Stat label="Invertiste" value={money(total.spend)} />
-            <Stat label="Consultas" value={formatCount(total.inquiries)} />
-            <Stat label="Clientes" value={formatCount(total.clients)} />
-            <Stat label="Tasa de cierre" value={formatRatio(total.closeRate)} />
-            <Stat label="Facturaste" value={money(total.billed)} />
-            <Stat label="Ganancia" value={money(total.profit)} strong />
-          </div>
-          {report.otherCurrency > 0 && (
-            <p className="text-xs text-muted">{report.otherCurrency} trabajos en otra moneda no se suman acá.</p>
-          )}
-        </>
-      )}
+      </section>
+    );
+  return (
+    <section aria-label="Rentabilidad por embudo" className="flex flex-col gap-4">
+      <div className="card grid grid-cols-2 gap-x-6 gap-y-3 bg-ink p-5 text-white sm:grid-cols-3 lg:grid-cols-6">
+        <Stat label="Invertiste" value={money(total.spend)} />
+        <Stat label="Consultas" value={count(total.inquiries)} />
+        <Stat label="Clientes" value={count(total.clients)} />
+        <Stat label="Tasa de cierre" value={pct(total.closeRate)} />
+        <Stat label="Facturaste" value={money(total.billed)} />
+        <Stat label="Ganancia" value={money(total.profit)} strong />
+      </div>
+      <h2 className="text-xl font-extrabold">Por embudo</h2>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {rows.map((r) => (
+          <Card key={r.funnelId ?? "none"} r={r} money={money} />
+        ))}
+      </div>
+      {report.otherCurrency > 0 && <p className="text-xs text-muted">{report.otherCurrency} trabajos en otra moneda no se suman acá.</p>}
     </section>
   );
 }
@@ -82,7 +78,7 @@ function Card({ r, money }: { r: FunnelProfitRow; money: (v: number | null) => s
         )}
       </p>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        <Row k="Tasa de cierre" v={formatRatio(r.closeRate)} />
+        <Row k="Tasa de cierre" v={pct(r.closeRate)} />
         <Row k="Costo por consulta" v={money(r.costPerInquiry)} />
         <Row k="Costo por cliente" v={money(r.costPerClient)} />
         <Row k="Facturaste" v={money(r.billed)} />

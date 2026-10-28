@@ -29,6 +29,11 @@ repuesto, cobrado y origen; venta = cliente, artículo, costo, precio, cobrado y
 | Publicidad (`/publicidad`) | Tabla `funnel_months`: inversión y consultas por embudo y mes; corregir reemplaza (único por embudo/mes); vacío = no cargado | SQL `tests/db/v15.test.sql` (unicidad, RLS, embudo ajeno) y e2e |
 | Reporte | «Rentabilidad por embudo» en Inicio: invertido, consultas, clientes, tasa de cierre (clientes ÷ consultas), costo por consulta/cliente, facturado, costo, cobrado, **ganancia = facturado − costo − inversión**, rentabilidad = ganancia ÷ inversión, avisos de lo que falta | `src/domain/funnel-profit.test.ts` y e2e |
 
+Inicio simplificado (decisión del propietario, 28/10/2026: «la perfección es cuando no queda nada por quitar»): muestra
+solo el mes, el resumen (invertido, consultas, clientes, cierre, facturado, ganancia) y una tarjeta por embudo.
+Se quitaron del Inicio objetivos, gráfico mensual, diagnóstico, tabla «Resultados por embudo» y calidad de datos
+(siguen sus módulos y las páginas de «Más»; el panel del mentor no cambia).
+
 Decisión del propietario: se llama **ganancia** (sin costos fijos, que vienen después). El indicador anterior
 «Ganancia» (venta − costo, sin publicidad) se renombró «Margen sin publicidad» para no mostrar dos ganancias.
 Migración `supabase/migrations/20261028000000_v15_carga_simple.sql`: **no aplicada en producción**; requiere
