@@ -122,6 +122,7 @@ try {
   assert.match(text, /\+50 %/);
   const total = (await page.locator('section[aria-label="Rentabilidad por embudo"]').innerText()).replace(/\s+/g, ' ');
   assert.match(total, /Clientes 2/i);
+  assert.equal(await page.getByText('Resultados por embudo').count(), 0, 'el inicio muestra un solo reporte por embudo');
   await noOverflow();
   await shot('reporte-390');
   await page.setViewportSize({ width: 1440, height: 1000 });
