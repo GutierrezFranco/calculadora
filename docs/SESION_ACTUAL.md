@@ -1,58 +1,40 @@
-# Sesión actual — aplicación productiva V1.4
+# Sesión actual — V1.5 carga simple y rentabilidad por embudo
 
-Fecha: 24/10/2026 (UTC). Responsable: Codex.
-Estado: PR #7 fusionado por el propietario; migración productiva aplicada y verificada.
+Fecha: 28/10/2026. Responsable: Claude (Claude Code).
+Estado: implementado y probado en local; rama `claude/carga-simple-embudos`, PR pendiente de crear.
 
-## Autorización y referencias
+## Autorización
 
-El propietario autorizó explícitamente aplicar la migración pendiente después de
-confirmar el merge. Alcance: migración V1.4 aprobada y verificaciones; no nuevas
-funcionalidades, datos ficticios en producción ni modificaciones de Vercel.
+El propietario pidió explícitamente simplificar la carga (campos acordados con Facu), agregar la publicidad
+por embudo y el reporte de rentabilidad, y llamar «ganancia» a facturado − costo − inversión.
+No autorizó: aplicar la migración en producción, IA, WhatsApp ni otros cambios.
 
-- Main verificado: `8f8a59ef2a0709bcb1c265140aba5fd2c946b9cf`.
-- Implementación: [PR #7](https://github.com/GutierrezFranco/calculadora/pull/7), fusionado.
-- Rama de este relevo: `docs/v14-migracion-productiva`; PR documental independiente.
-- Proyecto Supabase: `mdm-os` (`ddjdtoprftxvasajyfzn`), PostgreSQL 17.11.
-- Fuente aplicada sin cambios: `supabase/migrations/20261026000000_v14_clientes_operaciones.sql`.
-- SHA256 de la fuente: `945f129b698a939fc0c715f8765ab9a9c0137c2d33ff7923908208e732f5812e`.
-- Nombre remoto `v14_clientes_operaciones`, versión asignada por MCP `20261024215117`.
+## Archivos
 
-## Ejecución y verificaciones
+- `supabase/migrations/20261028000000_v15_carga_simple.sql` y `supabase/instalar-todo.sql` (regenerado).
+- `src/app/negocio/[id]/cargar/` (página, `simple-form.tsx`, `actions.ts`), `src/app/negocio/[id]/publicidad/`.
+- `src/domain/funnel-profit.ts` (+ test), `src/lib/profit-data.ts`, `src/components/funnel-profit.tsx`.
+- `src/lib/funnel-choice.ts` (`simpleFunnelOptions`), `src/components/app-header.tsx` (Cargar, Publicidad, Mis trabajos).
+- `src/app/negocio/[id]/page.tsx`: reporte arriba; «Margen sin publicidad».
+- `tests/db/v15.test.sql`, `tests/e2e/carga-simple.mjs` (agregado a `scripts/test-e2e.sh`).
 
-1. Consultados changelog/documentación Supabase, esquema real, índices, historial y
-   asesores antes del cambio. Existía V1.3, no `operations` ni RPC nueva. Historial
-   remoto vacío, por instalación anterior fuera del registro de migraciones.
-2. Clientes, ventas, pagos y oportunidades tenían cero filas. No se extrajeron
-   datos personales ni se crearon fixtures o cuentas de prueba en producción.
-3. Aplicada únicamente la migración aprobada desde origin/main con `apply_migration`.
-   Respuesta: `success: true`. Sin reset, reinstalación integral ni otras migraciones.
-4. Comprobados tabla/RPC, RLS activo, políticas SELECT/INSERT/UPDATE para autenticados,
-   permisos de lectura/ejecución, RPC denegada a anon, índice único por operación y
-   retiro del anterior por oportunidad. Trigger de inmutabilidad de pagos habilitado.
-   Conteos posteriores: clientes/ventas/pagos/operaciones siguen en cero.
-5. Consultado historial: una sola entrada V1.4. No aplicar nuevamente ni ejecutar
-   db push hasta conciliar historial remoto vs nombres/versiones del repositorio.
-6. GitHub confirma deployment Vercel exitoso para el SHA fusionado. La API Vercel
-   del conector devolvió 403 por falta de acceso al equipo; no se modificó su
-   configuración ni se crearon despliegues. No se verificó sesión productiva.
-7. Asesores después del cambio: mismas advertencias preexistentes, ninguna nueva:
-   dos RPC SECURITY DEFINER accesibles para usuarios autenticados y protección de
-   contraseñas filtradas deshabilitada. No se cambió Auth ni funciones fuera del alcance.
-   Referencias: [funciones privilegiadas](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable),
-   [protección de contraseñas](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+El formulario completo anterior (`operaciones/operation-form.tsx`) sigue para editar trabajos existentes.
 
-## Relevo
+## Validaciones ejecutadas (local, datos ficticios)
 
-Siguiente paso funcional: el propietario entra con su cuenta y prueba Registrar →
-cliente → trabajo → Guardar y cargar otra → Operaciones/historial.
-No se añadieron datos de Facu ni se ejecutó una carga productiva de prueba.
-No iniciar marketing mensual, IA ni WhatsApp sin autorización.
+- `npx vitest run`: 77 pruebas OK. `npx tsc --noEmit` y `npx eslint src tests`: OK.
+- `./scripts/test-db.sh` (Postgres 16 local): todas las suites, incluida V1.5; `instalar-todo.sql` al día.
+- `npx next build` (Turbopack): OK. Nota: `next build --webpack` no procesa Tailwind en este proyecto.
+- `npx supabase start` (sin studio/edge/logflare/storage/realtime) + app en :3200 + `tests/e2e/carga-simple.mjs`:
+  OK en 390 px y 1440 px (dos reparaciones del mismo cliente sin duplicarlo, una venta, publicidad
+  corregida sin sumar, tarjeta de Tráfico al perfil con ganancia $15.000 y +50 %).
+- No se ejecutó la suite e2e completa anterior.
 
-El PR #7 conserva la evidencia local: 72 pruebas de dominio, TypeScript, ESLint,
-build Webpack, suite SQL y navegador 390/1440 px con Auth simulado. Sigue pendiente
-la suite completa e2e con Supabase Auth real; la aplicación de la migración no la sustituye.
-Guía: [clientes-operaciones-v1-4.md](clientes-operaciones-v1-4.md).
+## Pendiente / siguiente paso
 
-Este PR modifica solo documentación. Validaciones: diff --check, enlaces locales y
-AGENTS.md intacto; no se repitieron suites de aplicación por este relevo documental.
-El SHA de este mismo commit se resuelve en el PR o con git rev-parse HEAD.
+1. Crear el PR desde la rama (el push no se pudo hacer desde esta sesión por permisos del repositorio).
+2. Revisión y merge del propietario.
+3. Con autorización explícita: aplicar solo la migración V1.5 en `mdm-os` (ver precaución de la sección 7 de
+   ESTADO_ACTUAL; no usar `db push`).
+4. Pendiente de producto: estados propios del propietario para reparaciones; el indicador «Consultas» del
+   inicio todavía no toma las consultas cargadas en Publicidad.

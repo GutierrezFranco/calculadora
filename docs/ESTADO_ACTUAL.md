@@ -1,6 +1,6 @@
 # Estado actual de MDM OS
 
-Actualizado: 24/10/2026 (America/Buenos_Aires).
+Actualizado: 28/10/2026 (America/Buenos_Aires).
 Repositorio: `GutierrezFranco/calculadora`.
 Base funcional inspeccionada: `main` en `91f48d8ae78a4b1bc6b5974d2aea6e3d9def2f0e`.
 
@@ -14,6 +14,25 @@ Este documento es el índice vigente de decisiones, evidencia y pendientes.
 PR #7 fusionado por el propietario y migración productiva autorizada explícitamente
 el 24/10/2026 después del merge. Aplicación terminada y verificada; ver sesión.
 No se autorizaron marketing mensual, IA, integración WhatsApp ni cambios adicionales.
+
+## 1.1. V1.5 — carga simple y rentabilidad por embudo (rama `claude/carga-simple-embudos`, sin merge)
+
+Pedido explícito del propietario (28/10/2026): que el alumno cargue fácil sus reparaciones y ventas, su
+publicidad por embudo y vea solo el reporte de rentabilidad. Campos acordados con Facu:
+reparación = cliente (nombre + WhatsApp opcional), equipo en un renglón, reparación en un renglón, costo del
+repuesto, cobrado y origen; venta = cliente, artículo, costo, precio, cobrado y origen.
+
+| Área | Implementado | Evidencia |
+|---|---|---|
+| Carga simple (`/cargar`) | Reparación/venta en una pantalla; reutiliza `guardar_operacion`; en reparación lo cobrado es el precio; fecha (hoy) y estado (hecho) en «Más opciones»; sugiere clientes existentes; «Guardar y cargar otra» | e2e `tests/e2e/carga-simple.mjs` (390/1440 px, Supabase local con Auth real) |
+| Origen | Embudos activos + los cuatro de siempre (Conocido/recomendado, Tráfico al perfil, Anuncios a WhatsApp, Anuncios a Instagram) que se activan al elegirlos; «No sé» | e2e |
+| Publicidad (`/publicidad`) | Tabla `funnel_months`: inversión y consultas por embudo y mes; corregir reemplaza (único por embudo/mes); vacío = no cargado | SQL `tests/db/v15.test.sql` (unicidad, RLS, embudo ajeno) y e2e |
+| Reporte | «Rentabilidad por embudo» en Inicio: invertido, consultas, clientes, tasa de cierre (clientes ÷ consultas), costo por consulta/cliente, facturado, costo, cobrado, **ganancia = facturado − costo − inversión**, rentabilidad = ganancia ÷ inversión, avisos de lo que falta | `src/domain/funnel-profit.test.ts` y e2e |
+
+Decisión del propietario: se llama **ganancia** (sin costos fijos, que vienen después). El indicador anterior
+«Ganancia» (venta − costo, sin publicidad) se renombró «Margen sin publicidad» para no mostrar dos ganancias.
+Migración `supabase/migrations/20261028000000_v15_carga_simple.sql`: **no aplicada en producción**; requiere
+autorización explícita después del merge. No se usaron datos reales.
 
 ## 2. Estado implementado en la rama de esta entrega
 

@@ -12,3 +12,4 @@ node tests/e2e/v1b.mjs
 node tests/e2e/v13.mjs
 
 node tests/e2e/operaciones.mjs
+node tests/e2e/carga-simple.mjs

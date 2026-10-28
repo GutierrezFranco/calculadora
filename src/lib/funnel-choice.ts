@@ -38,3 +38,23 @@ export async function resolveFunnel(supabase: SupabaseClient, businessId: string
   if (error) throw new Error(error.message);
   return data as string;
 }
+
+/** Los cuatro orígenes de siempre: aparecen aunque el alumno todavía no los haya activado. */
+export const MAIN_TEMPLATES = ["recomendaciones", "meta_perfil", "meta_whatsapp", "meta_instagram"];
+
+/**
+ * Opciones para la carga simple: los embudos activos del negocio y, si faltan, los cuatro de siempre
+ * (se activan solos al elegirlos). Sin las plantillas poco usadas, para que la lista sea corta.
+ */
+export async function simpleFunnelOptions(supabase: SupabaseClient, businessId: string): Promise<FunnelOption[]> {
+  const [{ data: funnels }, templates] = await Promise.all([
+    supabase.from("funnels").select("id, name, template_key").eq("business_id", businessId).eq("status", "activo").order("created_at"),
+    loadTemplates(supabase),
+  ]);
+  const used = new Set((funnels ?? []).map((f) => f.template_key));
+  const missing = MAIN_TEMPLATES.map((k) => templates.find((t) => t.key === k)).filter((t) => t && !used.has(t.key));
+  return [
+    ...(funnels ?? []).map((f) => ({ value: f.id as string, label: f.name as string })),
+    ...missing.map((t) => ({ value: `t:${t!.key}`, label: t!.name })),
+  ];
+}
