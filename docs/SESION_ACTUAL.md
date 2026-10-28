@@ -1,40 +1,20 @@
-# Sesión actual — V1.5 carga simple y rentabilidad por embudo
+# Sesión actual — V1.5 aplicada en producción
 
 Fecha: 28/10/2026. Responsable: Claude (Claude Code).
-Estado: implementado y probado en local; rama `claude/carga-simple-embudos`, PR pendiente de crear.
+Estado: PR #10 (V1.5 carga simple, publicidad y rentabilidad por embudo) fusionado; base productiva actualizada.
 
-## Autorización
+## Producción
 
-El propietario pidió explícitamente simplificar la carga (campos acordados con Facu), agregar la publicidad
-por embudo y el reporte de rentabilidad, y llamar «ganancia» a facturado − costo − inversión.
-No autorizó: aplicar la migración en producción, IA, WhatsApp ni otros cambios.
+- El propietario autorizó explícitamente aplicar la base después del merge.
+- Ejecutado por el propietario en Supabase → SQL Editor del proyecto `mdm-os` (esta sesión no tiene conector Supabase):
+  versión idempotente de `supabase/migrations/20261028000000_v15_carga_simple.sql`.
+- Resultado verificado con la consulta final: `listo · plantilla_instagram = 1 · seguridad_activa = true`.
+- No quedó registro en `supabase_migrations.schema_migrations`: conciliar historial antes de cualquier `db push`.
+- No se cargaron datos ficticios en producción.
 
-## Archivos
+## Siguiente paso
 
-- `supabase/migrations/20261028000000_v15_carga_simple.sql` y `supabase/instalar-todo.sql` (regenerado).
-- `src/app/negocio/[id]/cargar/` (página, `simple-form.tsx`, `actions.ts`), `src/app/negocio/[id]/publicidad/`.
-- `src/domain/funnel-profit.ts` (+ test), `src/lib/profit-data.ts`, `src/components/funnel-profit.tsx`.
-- `src/lib/funnel-choice.ts` (`simpleFunnelOptions`), `src/components/app-header.tsx` (Cargar, Publicidad, Mis trabajos).
-- `src/app/negocio/[id]/page.tsx`: reporte arriba; «Margen sin publicidad».
-- `tests/db/v15.test.sql`, `tests/e2e/carga-simple.mjs` (agregado a `scripts/test-e2e.sh`).
-
-El formulario completo anterior (`operaciones/operation-form.tsx`) sigue para editar trabajos existentes.
-
-## Validaciones ejecutadas (local, datos ficticios)
-
-- `npx vitest run`: 77 pruebas OK. `npx tsc --noEmit` y `npx eslint src tests`: OK.
-- `./scripts/test-db.sh` (Postgres 16 local): todas las suites, incluida V1.5; `instalar-todo.sql` al día.
-- `npx next build` (Turbopack): OK. Nota: `next build --webpack` no procesa Tailwind en este proyecto.
-- `npx supabase start` (sin studio/edge/logflare/storage/realtime) + app en :3200 + `tests/e2e/carga-simple.mjs`:
-  OK en 390 px y 1440 px (dos reparaciones del mismo cliente sin duplicarlo, una venta, publicidad
-  corregida sin sumar, tarjeta de Tráfico al perfil con ganancia $15.000 y +50 %).
-- No se ejecutó la suite e2e completa anterior.
-
-## Pendiente / siguiente paso
-
-1. Crear el PR desde la rama (el push no se pudo hacer desde esta sesión por permisos del repositorio).
-2. Revisión y merge del propietario.
-3. Con autorización explícita: aplicar solo la migración V1.5 en `mdm-os` (ver precaución de la sección 7 de
-   ESTADO_ACTUAL; no usar `db push`).
-4. Pendiente de producto: estados propios del propietario para reparaciones; el indicador «Consultas» del
-   inicio todavía no toma las consultas cargadas en Publicidad.
+1. El propietario prueba con su cuenta: Cargar → Publicidad → Inicio (tarjeta de rentabilidad) y borra la prueba.
+2. Facu carga datos reales; ajustar campos según su uso.
+3. Pendientes de producto: estados propios de reparaciones; el indicador «Consultas» del inicio no toma
+   todavía las consultas cargadas en Publicidad.

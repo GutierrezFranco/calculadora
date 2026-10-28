@@ -31,8 +31,11 @@ repuesto, cobrado y origen; venta = cliente, artículo, costo, precio, cobrado y
 
 Decisión del propietario: se llama **ganancia** (sin costos fijos, que vienen después). El indicador anterior
 «Ganancia» (venta − costo, sin publicidad) se renombró «Margen sin publicidad» para no mostrar dos ganancias.
-Migración `supabase/migrations/20261028000000_v15_carga_simple.sql`: **no aplicada en producción**; requiere
-autorización explícita después del merge. No se usaron datos reales.
+Migración `supabase/migrations/20261028000000_v15_carga_simple.sql`: PR #10 fusionado y **aplicada en producción**
+(proyecto `mdm-os`) el 28/10/2026 por el propietario desde el SQL Editor, con autorización explícita, usando una
+versión equivalente e idempotente (`if not exists` / `drop ... if exists`). Verificación: plantilla `meta_instagram`
+presente y RLS activo en `funnel_months`. Al ejecutarse desde el SQL Editor **no quedó registrada** en el historial
+de migraciones remoto: no volver a aplicarla ni usar `db push` sin conciliar antes (ver sección 7).
 
 ## 2. Estado implementado en la rama de esta entrega
 
