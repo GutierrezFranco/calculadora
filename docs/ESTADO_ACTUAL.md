@@ -159,23 +159,32 @@ llamada con un alumno del 04/11). No implementar hasta un pedido explícito:
 El roadmap formativo de MDM es un proyecto paralelo; no implementarlo aquí.
 Stock, contabilidad integral, caja, sucursales y empleados no integran este alcance.
 
-### 3.7. Pedidos surgidos del uso real (04/11/2026) — pendientes, sin implementar
+### 3.7. Pedidos surgidos del uso real (04/11/2026) — V1.6
 
-Antes de implementar cada uno, verificar en el código si ya existe (V1.5 cubre parte).
+Rama `claude/pedidos-uso-real`. Migración aditiva `20261105000000_v16_pedidos_uso_real.sql`
+(no aplicada en producción).
 
-1. Moneda por operación (ARS/USD) en ventas, reparaciones, costo e inversión publicitaria,
-   con cotización guardada; Meta cobra en USD.
-2. Embudos recién agregados por el mentor deben aparecer en los selectores sin recargar.
-3. Montos: aceptar «70.200», «70200» y «70.200,50» y mostrar el valor interpretado.
-4. Publicidad: consultas vacías = desconocido, nunca cero; no calcular costo por consulta.
-5. Origen «Conocido / boca a boca» separado de desconocidos.
-6. Plan canje: equipo recibido como parte de pago con su valor; al revenderlo, su ganancia.
-   Proponer el modelo antes de implementarlo.
-7. Embudos no rastreables (tráfico al perfil): rentabilidad mensual marcada «estimado» en vez
-   de costo por cliente.
-8. Publicidad: seguidores, reproducciones de 3 s e impresiones opcionales → costo por seguidor
-   y hook rate.
-9. TikTok Live: botón «+1 conversación» para celular.
+| # | Pedido | Estado |
+|---|---|---|
+| 1 | Moneda por operación (ARS/USD) | ✅ Carga simple con «Pesos / Dólares»; se recuerda por tipo (reparación/venta) en el navegador. Publicidad en US$ con la cotización del negocio guardada en el mes. El reporte convierte con la cotización de cada registro; sin cotización no mezcla y avisa. |
+| 2 | Embudos nuevos sin recargar | ✅ `RefreshOnFocus` en Cargar y Publicidad: al volver a la pestaña se pide la página otra vez. |
+| 3 | Montos con punto | ✅ `parseAmountText` ya aceptaba «70.200»; ahora cada monto muestra debajo «= $ 70.200» (`AmountInput`). |
+| 4 | Consultas vacías ≠ 0 | ✅ Ya en V1.5; texto de ayuda agregado. |
+| 5 | Origen «Conocido» | ✅ Ya en V1.5 («Conocido / recomendado»). |
+| 6 | Plan canje | ⏳ Propuesta abajo; requiere aprobación antes de implementar. |
+| 7 | Embudos no rastreables | ✅ Tráfico al perfil, Instagram y TikTok orgánico: sin costo por cliente, etiqueta «Estimado» y explicación. |
+| 8 | Costo por seguidor y hook rate | ✅ Campos opcionales en Publicidad (embudos de anuncios) y en el reporte. |
+| 9 | +1 conversación | ✅ Botones −/+1 en las consultas de cada embudo en Publicidad (`sumar_consulta_embudo`, nunca baja de 0). |
+
+Pruebas: `src/domain/funnel-profit.test.ts`, `tests/db/v16.test.sql`, `tests/e2e/v16.mjs`
+(390 px) y `tests/e2e/carga-simple.mjs` actualizado.
+
+**Propuesta de plan canje (no implementada).** En una venta, opción «Recibí un equipo en parte de pago»
+con descripción y valor tomado, en la misma moneda. La venta conserva su precio completo; el valor del
+equipo se registra como cobro en especie (no como efectivo), así el saldo y lo cobrado son reales. El equipo
+queda como «equipo de canje sin vender», con su valor tomado como costo. Al venderlo se elige de esa lista y
+el costo se completa solo; su ganancia es precio − valor tomado. No es un módulo de stock: solo la lista de
+equipos recibidos en canje y todavía no vendidos.
 
 ## 4. Limitaciones conocidas — estado después de la primera etapa
 

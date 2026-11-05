@@ -117,7 +117,9 @@ try {
   const text = (await card.innerText()).replace(/\s+/g, ' ');
   assert.match(text, /Invertiste \$\s?30\.000, te generó 20 consultas y cerraste 1 cliente\./);
   assert.match(text, /Tasa de cierre 5 %/);
-  assert.match(text, /Costo por cliente \$\s?30\.000/);
+  // Tráfico al perfil no es rastreable: no se muestra costo por cliente, la rentabilidad va marcada como estimada
+  assert.match(text, /Estimado/);
+  assert.doesNotMatch(text, /Costo por cliente/);
   assert.match(text, /Ganancia ?\$\s?15\.000/);
   assert.match(text, /\+50 %/);
   const total = (await page.locator('section[aria-label="Rentabilidad por embudo"]').innerText()).replace(/\s+/g, ' ');

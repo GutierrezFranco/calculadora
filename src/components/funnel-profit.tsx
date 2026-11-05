@@ -41,7 +41,14 @@ export function FunnelProfit({ report, currency, basePath, month }: { report: Fu
           <Card key={r.funnelId ?? "none"} r={r} money={money} />
         ))}
       </div>
-      {report.otherCurrency > 0 && <p className="text-xs text-muted">{report.otherCurrency} trabajos en otra moneda no se suman acá.</p>}
+      {report.converted > 0 && (
+        <p className="text-xs text-muted">Lo cargado en dólares se pasó a {currency} con la cotización guardada en cada carga.</p>
+      )}
+      {report.otherCurrency > 0 && (
+        <p className="text-xs text-warn">
+          {report.otherCurrency} cargas en dólares no se suman porque falta la cotización: cargala en Configuración.
+        </p>
+      )}
     </section>
   );
 }
@@ -51,7 +58,12 @@ function Card({ r, money }: { r: FunnelProfitRow; money: (v: number | null) => s
   return (
     <article className="card flex flex-col gap-3 p-5">
       <header className="flex items-start justify-between gap-2">
-        <h3 className="font-bold">{r.name}</h3>
+        <h3 className="font-bold">
+          {r.name}
+          {!r.traceable && r.spend !== null && (
+            <span className="ml-2 rounded-full bg-warn-soft px-2 py-0.5 align-middle text-[11px] font-semibold text-warn">Estimado</span>
+          )}
+        </h3>
         {r.roi !== null && (
           <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${good ? "bg-good/10 text-good" : "bg-bad/10 text-bad"}`}>
             {good ? "+" : ""}
@@ -80,7 +92,9 @@ function Card({ r, money }: { r: FunnelProfitRow; money: (v: number | null) => s
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
         <Row k="Tasa de cierre" v={pct(r.closeRate)} />
         <Row k="Costo por consulta" v={money(r.costPerInquiry)} />
-        <Row k="Costo por cliente" v={money(r.costPerClient)} />
+        {r.traceable ? <Row k="Costo por cliente" v={money(r.costPerClient)} /> : <Row k="Costo por seguidor" v={money(r.costPerFollower)} />}
+        {r.traceable && r.costPerFollower !== null && <Row k="Costo por seguidor" v={money(r.costPerFollower)} />}
+        {r.hookRate !== null && <Row k="Hook rate" v={pct(r.hookRate)} />}
         <Row k="Facturaste" v={money(r.billed)} />
         <Row k="Repuestos / costo" v={money(r.cost)} />
         <Row k="Cobrado" v={money(r.collected)} />
@@ -92,6 +106,8 @@ function Card({ r, money }: { r: FunnelProfitRow; money: (v: number | null) => s
       {r.roi !== null && (
         <p className="text-xs text-muted">
           Por cada $1 que pusiste en publicidad, {good ? "ganaste" : "perdiste"} ${Math.abs(r.roi).toFixed(2).replace(".", ",")}.
+          {!r.traceable &&
+            " Es una estimación: este anuncio potencia tu contenido y se mezcla con lo orgánico, así que no se puede saber qué cliente trajo cada peso."}
         </p>
       )}
       {(r.missing.length > 0 || r.withoutCost > 0 || r.withoutPrice > 0) && (

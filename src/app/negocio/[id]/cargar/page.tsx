@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
+import { RefreshOnFocus } from "@/components/refresh-on-focus";
 import { localDate } from "@/domain/dates";
 import { getBusinessForUser } from "@/lib/business-access";
 import { simpleFunnelOptions } from "@/lib/funnel-choice";
@@ -14,6 +15,7 @@ export default async function LoadPage({ params }: { params: Promise<{ id: strin
   return (
     <>
       <AppHeader user={user} businessId={id} />
+      <RefreshOnFocus />
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:py-10">
         <header>
           <h1 className="text-2xl font-extrabold">Cargar reparación o venta</h1>

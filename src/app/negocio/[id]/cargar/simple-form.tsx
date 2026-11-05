@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { AmountInput } from "@/components/amount-input";
 import type { FunnelOption } from "@/lib/funnel-choice";
 import { searchCustomers, type CustomerOption, type OperationResult } from "../operaciones/actions";
 import { saveSimpleOperation } from "./actions";
@@ -18,6 +19,28 @@ export function SimpleOperationForm({
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
   const [kind, setKind] = useState<Kind>("reparacion");
+  // Moneda de cada tipo: las reparaciones suelen cobrarse en pesos y las ventas de equipos en dólares.
+  // Se recuerda la última elegida para cada tipo en este navegador.
+  const [currencyOf, setCurrencyOf] = useState<Record<Kind, string>>({ reparacion: currency, venta: currency });
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("mdm:monedas") ?? "{}") as Partial<Record<Kind, string>>;
+      // Se lee después de hidratar: en el servidor no hay localStorage.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCurrencyOf((c) => ({
+        reparacion: saved.reparacion === "USD" || saved.reparacion === currency ? saved.reparacion : c.reparacion,
+        venta: saved.venta === "USD" || saved.venta === currency ? saved.venta : c.venta,
+      }));
+    } catch {}
+  }, [currency]);
+  const opCurrency = currencyOf[kind];
+  const chooseCurrency = (value: string) => {
+    const next = { ...currencyOf, [kind]: value };
+    setCurrencyOf(next);
+    try {
+      localStorage.setItem("mdm:monedas", JSON.stringify(next));
+    } catch {}
+  };
   const [funnel, setFunnel] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -90,7 +113,7 @@ export function SimpleOperationForm({
       <input type="hidden" name="id" value="" />
       <input type="hidden" name="version" value="0" />
       <input type="hidden" name="requestId" value={requestId} />
-      <input type="hidden" name="currency" value={currency} />
+      <input type="hidden" name="currency" value={opCurrency} />
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="contactId" value={customer?.id ?? ""} />
       <input type="hidden" name="funnel" value={funnel} />
@@ -109,6 +132,25 @@ export function SimpleOperationForm({
           </button>
         ))}
       </div>
+
+      {currency !== "USD" && (
+        <div className="flex items-center gap-2 text-sm" role="radiogroup" aria-label="Moneda">
+          <span className="font-semibold">Moneda:</span>
+          {[currency, "USD"].map((c) => (
+            <button
+              key={c}
+              type="button"
+              role="radio"
+              aria-checked={opCurrency === c}
+              onClick={() => chooseCurrency(c)}
+              className={`rounded-full border px-3 py-1.5 font-semibold ${opCurrency === c ? "border-ink bg-ink text-white" : "border-line bg-white"}`}
+            >
+              {c === "USD" ? "Dólares (US$)" : `Pesos (${c})`}
+            </button>
+          ))}
+          <span className="text-xs text-muted">Costo, precio y cobrado van en esta moneda.</span>
+        </div>
+      )}
 
       <fieldset disabled={pending} className="flex min-w-0 flex-col gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -161,11 +203,11 @@ export function SimpleOperationForm({
             </label>
             <label className="text-sm font-semibold">
               Costo del repuesto
-              <input name="cost" inputMode="decimal" placeholder="$" className={big} />
+              <AmountInput key={`cost-${requestId}`} name="cost" currency={opCurrency} />
             </label>
             <label className="text-sm font-semibold">
               Cobrado
-              <input name="paid" inputMode="decimal" placeholder="$" className={big} />
+              <AmountInput key={`paid-${requestId}`} name="paid" currency={opCurrency} />
             </label>
           </div>
         ) : (
@@ -176,15 +218,15 @@ export function SimpleOperationForm({
             </label>
             <label className="text-sm font-semibold">
               Costo
-              <input name="cost" inputMode="decimal" placeholder="$" className={big} />
+              <AmountInput key={`cost-${requestId}`} name="cost" currency={opCurrency} />
             </label>
             <label className="text-sm font-semibold">
               Precio
-              <input name="price" inputMode="decimal" placeholder="$" className={big} />
+              <AmountInput key={`price-${requestId}`} name="price" currency={opCurrency} />
             </label>
             <label className="text-sm font-semibold sm:col-span-2">
               Cobrado
-              <input name="paid" inputMode="decimal" placeholder="$ (si cobró todo, lo mismo que el precio)" className={big} />
+              <AmountInput key={`paid-${requestId}`} name="paid" currency={opCurrency} placeholder="$ (si cobró todo, lo mismo que el precio)" />
             </label>
           </div>
         )}
