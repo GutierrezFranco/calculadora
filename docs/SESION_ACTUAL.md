@@ -1,40 +1,36 @@
-# Sesión actual — V1.5 carga simple y rentabilidad por embudo
+# Sesión actual — V1.6 pedidos del uso real
 
-Fecha: 28/10/2026. Responsable: Claude (Claude Code).
-Estado: implementado y probado en local; rama `claude/carga-simple-embudos`, PR pendiente de crear.
+Fecha: 05/11/2026. Responsable: Claude (Claude Code).
+Estado: implementado y probado en local; rama `claude/pedidos-uso-real`, PR abierto, sin merge.
 
 ## Autorización
 
-El propietario pidió explícitamente simplificar la carga (campos acordados con Facu), agregar la publicidad
-por embudo y el reporte de rentabilidad, y llamar «ganancia» a facturado − costo − inversión.
-No autorizó: aplicar la migración en producción, IA, WhatsApp ni otros cambios.
+El propietario pidió implementar los pedidos surgidos de la llamada con un alumno (04/11) y dejar
+pospuestos para mucho más adelante WhatsApp, el análisis de chats con IA y el calendario de contenido.
+Después aprobó la propuesta de plan canje («hacé el plan canje así»), también implementada.
+No autorizó aplicar las migraciones en producción.
 
 ## Archivos
 
-- `supabase/migrations/20261028000000_v15_carga_simple.sql` y `supabase/instalar-todo.sql` (regenerado).
-- `src/app/negocio/[id]/cargar/` (página, `simple-form.tsx`, `actions.ts`), `src/app/negocio/[id]/publicidad/`.
+- `supabase/migrations/20261105000000_v16_pedidos_uso_real.sql`, `supabase/migrations/20261105010000_v16_plan_canje.sql`,
+  `supabase/instalar-todo.sql` (regenerado).
 - `src/domain/funnel-profit.ts` (+ test), `src/lib/profit-data.ts`, `src/components/funnel-profit.tsx`.
-- `src/lib/funnel-choice.ts` (`simpleFunnelOptions`), `src/components/app-header.tsx` (Cargar, Publicidad, Mis trabajos).
-- `src/app/negocio/[id]/page.tsx`: reporte arriba; «Margen sin publicidad».
-- `tests/db/v15.test.sql`, `tests/e2e/carga-simple.mjs` (agregado a `scripts/test-e2e.sh`).
-
-El formulario completo anterior (`operaciones/operation-form.tsx`) sigue para editar trabajos existentes.
+- `src/components/amount-input.tsx`, `src/components/refresh-on-focus.tsx`.
+- `src/app/negocio/[id]/cargar/` (moneda), `src/app/negocio/[id]/publicidad/` (moneda, +1, datos del anuncio).
+- `src/app/negocio/[id]/cargar/` también: plan canje (recibir equipo y vender uno de la lista).
+- `tests/db/v16.test.sql`, `tests/db/v16b.test.sql`, `tests/e2e/v16.mjs`, `tests/e2e/carga-simple.mjs`, `scripts/test-e2e.sh`.
+- `docs/ESTADO_ACTUAL.md` §3.6 y §3.7.
 
 ## Validaciones ejecutadas (local, datos ficticios)
 
-- `npx vitest run`: 77 pruebas OK. `npx tsc --noEmit` y `npx eslint src tests`: OK.
-- `./scripts/test-db.sh` (Postgres 16 local): todas las suites, incluida V1.5; `instalar-todo.sql` al día.
-- `npx next build` (Turbopack): OK. Nota: `next build --webpack` no procesa Tailwind en este proyecto.
-- `npx supabase start` (sin studio/edge/logflare/storage/realtime) + app en :3200 + `tests/e2e/carga-simple.mjs`:
-  OK en 390 px y 1440 px (dos reparaciones del mismo cliente sin duplicarlo, una venta, publicidad
-  corregida sin sumar, tarjeta de Tráfico al perfil con ganancia $15.000 y +50 %).
+- `npx vitest run`: 81 pruebas OK. `npx tsc --noEmit` y `npx eslint src tests`: OK.
+- `./scripts/test-db.sh` (Postgres 16): todas las suites, incluida V1.6; `instalar-todo.sql` al día.
+- `npx next build`: OK.
+- Supabase local + `tests/e2e/carga-simple.mjs` y `tests/e2e/v16.mjs` en 390 px: OK.
 - No se ejecutó la suite e2e completa anterior.
 
-## Pendiente / siguiente paso
+## Siguiente paso
 
-1. Crear el PR desde la rama (el push no se pudo hacer desde esta sesión por permisos del repositorio).
-2. Revisión y merge del propietario.
-3. Con autorización explícita: aplicar solo la migración V1.5 en `mdm-os` (ver precaución de la sección 7 de
-   ESTADO_ACTUAL; no usar `db push`).
-4. Pendiente de producto: estados propios del propietario para reparaciones; el indicador «Consultas» del
-   inicio todavía no toma las consultas cargadas en Publicidad.
+1. Revisión y merge del propietario.
+2. Con autorización: aplicar en producción, en orden, `20261105000000_v16_pedidos_uso_real.sql` y
+   `20261105010000_v16_plan_canje.sql` (SQL Editor; cada una una sola vez).
