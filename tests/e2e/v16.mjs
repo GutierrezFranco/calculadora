@@ -56,11 +56,49 @@ try {
   await shot('v16-venta-usd-390');
   await page.getByRole('button', { name: 'Guardar y cargar otra' }).click();
   await saved('Franco Ficticio · iPhone 16 Pro Max 256 GB');
-  const { data: sale } = await admin.from('operations').select('currency, agreed_amount, direct_cost').eq('business_id', business).single();
+  const { data: sale } = await admin.from('operations').select('currency, agreed_amount, direct_cost').eq('business_id', business).eq('description', 'iPhone 16 Pro Max 256 GB').single();
   assert.deepEqual([sale.currency, sale.agreed_amount, sale.direct_cost], ['USD', 68000, 50000], 'la venta queda en dólares');
   // La moneda elegida para ventas se recuerda; las reparaciones siguen en pesos
   await page.getByRole('radio', { name: /Reparación/ }).click();
   assert.equal(await page.getByRole('radio', { name: 'Pesos (ARS)' }).getAttribute('aria-checked'), 'true');
+
+  // 1b) Plan canje: vende un 16 Pro Max a US$ 1.000 con US$ 400 en plata y un 15 Pro Max tomado en US$ 600
+  await page.getByRole('radio', { name: /Venta/ }).click();
+  await page.fill('input[name=name]', 'Cliente Canje');
+  await page.fill('input[name=description]', 'iPhone 16 Pro Max');
+  await page.fill('input[name=cost]', '780');
+  await page.fill('input[name=price]', '1000');
+  await page.fill('input[name=paid]', '400');
+  await page.getByRole('button', { name: /Recibí un equipo en parte de pago/ }).click();
+  await page.fill('input[name=tradeDesc]', 'iPhone 15 Pro Max');
+  await page.fill('input[name=tradeValue]', '600');
+  await page.getByRole('radio', { name: 'Conocido / recomendado' }).click();
+  await noOverflow();
+  await shot('v16-canje-390');
+  await page.getByRole('button', { name: 'Guardar y cargar otra' }).click();
+  await saved('Cliente Canje · iPhone 16 Pro Max');
+  const { data: trades } = await admin.from('trade_ins').select('id, value, currency, received_operation_id').eq('business_id', business);
+  assert.equal(trades.length, 1, 'el equipo queda en la lista de canjes');
+  const { data: pays } = await admin.from('payments').select('amount, method').eq('operation_id', trades[0].received_operation_id);
+  assert.equal(pays.reduce((n, p) => n + p.amount, 0), 100000, 'la venta queda cobrada completa');
+  assert(pays.some((p) => p.method === 'canje' && p.amount === 60000), 'el equipo es un cobro en especie');
+  // Reventa del equipo de canje: el costo se completa solo
+  await page.reload();
+  await page.getByRole('radio', { name: /Venta/ }).click();
+  const tradeOption = await page.locator('select[name=soldTradeIn] option', { hasText: 'iPhone 15 Pro Max' }).getAttribute('value');
+  await page.selectOption('select[name=soldTradeIn]', tradeOption);
+  assert.equal(await page.inputValue('input[name=description]'), 'iPhone 15 Pro Max');
+  assert.equal(await page.inputValue('input[name=cost]'), '600');
+  await page.fill('input[name=name]', 'Comprador Ficticio');
+  await page.fill('input[name=price]', '700');
+  await page.fill('input[name=paid]', '700');
+  await page.getByRole('radio', { name: 'Conocido / recomendado' }).click();
+  await page.getByRole('button', { name: 'Guardar y cargar otra' }).click();
+  await saved('Comprador Ficticio · iPhone 15 Pro Max');
+  const { data: soldTrade } = await admin.from('trade_ins').select('sold_operation_id').eq('id', trades[0].id).single();
+  const { data: resale } = await admin.from('operations').select('direct_cost, agreed_amount').eq('id', soldTrade.sold_operation_id).single();
+  assert.deepEqual([resale.direct_cost, resale.agreed_amount], [60000, 70000], 'la reventa tiene como costo lo que valía el canje');
+  await page.locator('select[name=soldTradeIn]').waitFor({ state: 'detached' }); // sin canjes pendientes, la pregunta no aparece
 
   // 2) Publicidad: inversión en dólares, montos con punto y +1 durante un live
   await page.goto(route('/publicidad'));

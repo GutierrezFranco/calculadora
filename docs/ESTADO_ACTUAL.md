@@ -171,20 +171,22 @@ Rama `claude/pedidos-uso-real`. Migración aditiva `20261105000000_v16_pedidos_u
 | 3 | Montos con punto | ✅ `parseAmountText` ya aceptaba «70.200»; ahora cada monto muestra debajo «= $ 70.200» (`AmountInput`). |
 | 4 | Consultas vacías ≠ 0 | ✅ Ya en V1.5; texto de ayuda agregado. |
 | 5 | Origen «Conocido» | ✅ Ya en V1.5 («Conocido / recomendado»). |
-| 6 | Plan canje | ⏳ Propuesta abajo; requiere aprobación antes de implementar. |
+| 6 | Plan canje | ✅ Aprobado e implementado (migración `20261105010000_v16_plan_canje.sql`): ver abajo. |
 | 7 | Embudos no rastreables | ✅ Tráfico al perfil, Instagram y TikTok orgánico: sin costo por cliente, etiqueta «Estimado» y explicación. |
 | 8 | Costo por seguidor y hook rate | ✅ Campos opcionales en Publicidad (embudos de anuncios) y en el reporte. |
 | 9 | +1 conversación | ✅ Botones −/+1 en las consultas de cada embudo en Publicidad (`sumar_consulta_embudo`, nunca baja de 0). |
 
-Pruebas: `src/domain/funnel-profit.test.ts`, `tests/db/v16.test.sql`, `tests/e2e/v16.mjs`
+Pruebas: `src/domain/funnel-profit.test.ts`, `tests/db/v16.test.sql`, `tests/db/v16b.test.sql`, `tests/e2e/v16.mjs`
 (390 px) y `tests/e2e/carga-simple.mjs` actualizado.
 
-**Propuesta de plan canje (no implementada).** En una venta, opción «Recibí un equipo en parte de pago»
+**Plan canje (aprobado por el propietario el 05/11/2026 e implementado).** En una venta, opción «Recibí un equipo en parte de pago»
 con descripción y valor tomado, en la misma moneda. La venta conserva su precio completo; el valor del
 equipo se registra como cobro en especie (no como efectivo), así el saldo y lo cobrado son reales. El equipo
 queda como «equipo de canje sin vender», con su valor tomado como costo. Al venderlo se elige de esa lista y
 el costo se completa solo; su ganancia es precio − valor tomado. No es un módulo de stock: solo la lista de
-equipos recibidos en canje y todavía no vendidos.
+equipos recibidos en canje y todavía no vendidos. Implementación: tabla `trade_ins` (solo lectura para el
+usuario), `registrar_canje` (cobro `method = 'canje'`, no supera el precio) y `vender_canje` (costo = valor
+tomado, misma moneda, una sola vez). Una venta cancelada deja de ofrecer su canje.
 
 ## 4. Limitaciones conocidas — estado después de la primera etapa
 
