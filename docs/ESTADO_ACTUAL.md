@@ -147,8 +147,35 @@ aisladas por negocio y cuenta de origen, sin crear consultas a partir de mensaje
 El conector de `GutierrezFranco/ejemplo` se evaluará después; no implementarlo ahora.
 
 IA, lectura WhatsApp y Meta quedan después de esta prioridad.
+
+**Pospuesto para mucho más adelante** (decisión del propietario, 05/11/2026, a partir de la
+llamada con un alumno del 04/11). No implementar hasta un pedido explícito:
+
+- Atribución automática por WhatsApp: detectar el mensaje predeterminado que llega desde
+  Instagram («Quiero info sobre comprar, canjear o reparar») o usar un número exclusivo
+  para el link del perfil.
+- Análisis con IA de chats exportados de clientes que compraron, para obtener ángulos de contenido.
+- Calendario/biblioteca de contenido semanal (referencias, guion, «marcar como subido»).
 El roadmap formativo de MDM es un proyecto paralelo; no implementarlo aquí.
 Stock, contabilidad integral, caja, sucursales y empleados no integran este alcance.
+
+### 3.7. Pedidos surgidos del uso real (04/11/2026) — pendientes, sin implementar
+
+Antes de implementar cada uno, verificar en el código si ya existe (V1.5 cubre parte).
+
+1. Moneda por operación (ARS/USD) en ventas, reparaciones, costo e inversión publicitaria,
+   con cotización guardada; Meta cobra en USD.
+2. Embudos recién agregados por el mentor deben aparecer en los selectores sin recargar.
+3. Montos: aceptar «70.200», «70200» y «70.200,50» y mostrar el valor interpretado.
+4. Publicidad: consultas vacías = desconocido, nunca cero; no calcular costo por consulta.
+5. Origen «Conocido / boca a boca» separado de desconocidos.
+6. Plan canje: equipo recibido como parte de pago con su valor; al revenderlo, su ganancia.
+   Proponer el modelo antes de implementarlo.
+7. Embudos no rastreables (tráfico al perfil): rentabilidad mensual marcada «estimado» en vez
+   de costo por cliente.
+8. Publicidad: seguidores, reproducciones de 3 s e impresiones opcionales → costo por seguidor
+   y hook rate.
+9. TikTok Live: botón «+1 conversación» para celular.
 
 ## 4. Limitaciones conocidas — estado después de la primera etapa
 
