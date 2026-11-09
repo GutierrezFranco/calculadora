@@ -161,8 +161,8 @@ Stock, contabilidad integral, caja, sucursales y empleados no integran este alca
 
 ### 3.7. Pedidos surgidos del uso real (04/11/2026) — V1.6
 
-Rama `claude/pedidos-uso-real`. Migración aditiva `20261105000000_v16_pedidos_uso_real.sql`
-(no aplicada en producción).
+Rama `claude/pedidos-uso-real`. Migraciones aditivas `20261105000000_v16_pedidos_uso_real.sql` y
+`20261105010000_v16_plan_canje.sql`, aplicadas en producción el 09/11/2026 (ver §7).
 
 | # | Pedido | Estado |
 |---|---|---|
@@ -252,3 +252,11 @@ Antes de esta aplicación el registro remoto estaba vacío aunque V1.3 ya exist�
 No volver a ejecutar esta migración ni usar `db push` indiscriminadamente:
 el historial remoto y los nombres locales requieren conciliación previa.
 No se repararon ni marcaron versiones anteriores en esta sesión.
+
+Aplicadas `v16_pedidos_uso_real` y `v16_plan_canje` el 09/11/2026 en `mdm-os` (ref `ddjdtoprftxvasajyfzn`),
+con autorización explícita del propietario, mediante la API de administración de Supabase (token de acceso
+temporal guardado como secreto del entorno «MDM OS», nunca en el repositorio). Antes: V1.5 presente, V1.6
+ausente. Después: 4 columnas nuevas en `funnel_months`, `trade_ins` con RLS, 3 funciones; 4 negocios y
+18 operaciones intactos. Registradas en `supabase_migrations.schema_migrations` como `20261105000000`
+y `20261105010000`. Las versiones anteriores a V1.4 siguen sin registrar: no usar `db push`.
+

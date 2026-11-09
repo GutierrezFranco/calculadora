@@ -8,7 +8,7 @@ Estado: implementado y probado en local; rama `claude/pedidos-uso-real`, PR abie
 El propietario pidió implementar los pedidos surgidos de la llamada con un alumno (04/11) y dejar
 pospuestos para mucho más adelante WhatsApp, el análisis de chats con IA y el calendario de contenido.
 Después aprobó la propuesta de plan canje («hacé el plan canje así»), también implementada.
-No autorizó aplicar las migraciones en producción.
+El 09/11 pidió que Claude aplicara las migraciones en producción: aplicadas y verificadas (ESTADO_ACTUAL §7).
 
 ## Archivos
 
@@ -32,5 +32,4 @@ No autorizó aplicar las migraciones en producción.
 ## Siguiente paso
 
 1. Revisión y merge del propietario.
-2. Con autorización: aplicar en producción, en orden, `20261105000000_v16_pedidos_uso_real.sql` y
-   `20261105010000_v16_plan_canje.sql` (SQL Editor; cada una una sola vez).
+2. Migraciones ya aplicadas en producción: solo falta el merge para publicar las pantallas.
