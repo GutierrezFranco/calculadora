@@ -2,22 +2,58 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { AmountInput } from "@/components/amount-input";
+import { formatMoney } from "@/lib/format";
 import type { FunnelOption } from "@/lib/funnel-choice";
 import { searchCustomers, type CustomerOption, type OperationResult } from "../operaciones/actions";
 import { saveSimpleOperation } from "./actions";
 
 type Kind = "reparacion" | "venta";
 
+export interface TradeInOption {
+  id: string;
+  description: string;
+  /** Valor tomado, en unidades mínimas de su moneda. */
+  value: number;
+  currency: string;
+}
+
 /**
  * Carga simple: cliente (nombre + WhatsApp opcional), el equipo o artículo, el trabajo, costo, precio/cobrado
  * y de dónde vino. Todo en una pantalla; la fecha (hoy) y el estado (hecho) quedan en "Más opciones".
  */
 export function SimpleOperationForm({
-  businessId, currency, today, funnels,
-}: { businessId: string; currency: string; today: string; funnels: FunnelOption[] }) {
+  businessId, currency, today, funnels, tradeIns = [],
+}: { businessId: string; currency: string; today: string; funnels: FunnelOption[]; tradeIns?: TradeInOption[] }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
   const [kind, setKind] = useState<Kind>("reparacion");
+  // Plan canje: equipo recibido en parte de pago (receivingTrade) o equipo de canje que se vende (soldTrade).
+  const [receivingTrade, setReceivingTrade] = useState(false);
+  const [soldTrade, setSoldTrade] = useState("");
+  const sold = tradeIns.find((t) => t.id === soldTrade);
+  // Moneda de cada tipo: las reparaciones suelen cobrarse en pesos y las ventas de equipos en dólares.
+  // Se recuerda la última elegida para cada tipo en este navegador.
+  const [currencyOf, setCurrencyOf] = useState<Record<Kind, string>>({ reparacion: currency, venta: currency });
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("mdm:monedas") ?? "{}") as Partial<Record<Kind, string>>;
+      // Se lee después de hidratar: en el servidor no hay localStorage.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCurrencyOf((c) => ({
+        reparacion: saved.reparacion === "USD" || saved.reparacion === currency ? saved.reparacion : c.reparacion,
+        venta: saved.venta === "USD" || saved.venta === currency ? saved.venta : c.venta,
+      }));
+    } catch {}
+  }, [currency]);
+  const opCurrency = kind === "venta" && sold ? sold.currency : currencyOf[kind];
+  const chooseCurrency = (value: string) => {
+    const next = { ...currencyOf, [kind]: value };
+    setCurrencyOf(next);
+    try {
+      localStorage.setItem("mdm:monedas", JSON.stringify(next));
+    } catch {}
+  };
   const [funnel, setFunnel] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -48,6 +84,8 @@ export function SimpleOperationForm({
     setPhone("");
     setCustomer(null);
     setMatches([]);
+    setReceivingTrade(false);
+    setSoldTrade("");
     setRequestId(crypto.randomUUID());
     (form.current?.elements.namedItem("name") as HTMLInputElement | null)?.focus();
   };
@@ -90,7 +128,7 @@ export function SimpleOperationForm({
       <input type="hidden" name="id" value="" />
       <input type="hidden" name="version" value="0" />
       <input type="hidden" name="requestId" value={requestId} />
-      <input type="hidden" name="currency" value={currency} />
+      <input type="hidden" name="currency" value={opCurrency} />
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="contactId" value={customer?.id ?? ""} />
       <input type="hidden" name="funnel" value={funnel} />
@@ -109,6 +147,25 @@ export function SimpleOperationForm({
           </button>
         ))}
       </div>
+
+      {currency !== "USD" && (
+        <div className="flex items-center gap-2 text-sm" role="radiogroup" aria-label="Moneda">
+          <span className="font-semibold">Moneda:</span>
+          {[currency, "USD"].map((c) => (
+            <button
+              key={c}
+              type="button"
+              role="radio"
+              aria-checked={opCurrency === c}
+              onClick={() => chooseCurrency(c)}
+              className={`rounded-full border px-3 py-1.5 font-semibold ${opCurrency === c ? "border-ink bg-ink text-white" : "border-line bg-white"}`}
+            >
+              {c === "USD" ? "Dólares (US$)" : `Pesos (${c})`}
+            </button>
+          ))}
+          <span className="text-xs text-muted">Costo, precio y cobrado van en esta moneda.</span>
+        </div>
+      )}
 
       <fieldset disabled={pending} className="flex min-w-0 flex-col gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -161,31 +218,69 @@ export function SimpleOperationForm({
             </label>
             <label className="text-sm font-semibold">
               Costo del repuesto
-              <input name="cost" inputMode="decimal" placeholder="$" className={big} />
+              <AmountInput key={`cost-${requestId}`} name="cost" currency={opCurrency} />
             </label>
             <label className="text-sm font-semibold">
               Cobrado
-              <input name="paid" inputMode="decimal" placeholder="$" className={big} />
+              <AmountInput key={`paid-${requestId}`} name="paid" currency={opCurrency} />
             </label>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
+            {tradeIns.length > 0 && (
+              <label className="text-sm font-semibold sm:col-span-2">
+                ¿Vendés un equipo que recibiste en canje?
+                <select name="soldTradeIn" value={soldTrade} onChange={(e) => setSoldTrade(e.target.value)} className={big}>
+                  <option value="">No</option>
+                  {tradeIns.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.description} · tomado en {formatMoney({ [t.currency]: t.value })}
+                    </option>
+                  ))}
+                </select>
+                {sold && <span className="mt-1 block text-xs font-normal text-muted">El costo es lo que valía cuando lo tomaste.</span>}
+              </label>
+            )}
             <label className="text-sm font-semibold sm:col-span-2">
               Artículo
-              <input name="description" required maxLength={500} placeholder="Ej.: funda, cargador, iPhone 12 usado" className={big} />
+              <input key={`desc-${requestId}-${soldTrade}`} name="description" required maxLength={500} defaultValue={sold?.description ?? ""} placeholder="Ej.: funda, cargador, iPhone 12 usado" className={big} />
             </label>
             <label className="text-sm font-semibold">
               Costo
-              <input name="cost" inputMode="decimal" placeholder="$" className={big} />
+              <AmountInput key={`cost-${requestId}-${soldTrade}`} name="cost" currency={opCurrency} defaultValue={sold ? String(sold.value / 100).replace(".", ",") : ""} />
             </label>
             <label className="text-sm font-semibold">
               Precio
-              <input name="price" inputMode="decimal" placeholder="$" className={big} />
+              <AmountInput key={`price-${requestId}`} name="price" currency={opCurrency} />
             </label>
             <label className="text-sm font-semibold sm:col-span-2">
               Cobrado
-              <input name="paid" inputMode="decimal" placeholder="$ (si cobró todo, lo mismo que el precio)" className={big} />
+              <AmountInput key={`paid-${requestId}`} name="paid" currency={opCurrency} placeholder={receivingTrade ? "$ en plata, sin contar el equipo" : "$ (si cobró todo, lo mismo que el precio)"} />
             </label>
+            {receivingTrade ? (
+              <div className="grid gap-3 rounded-xl border border-line bg-soft p-3 sm:col-span-2 sm:grid-cols-2">
+                <p className="text-sm font-bold sm:col-span-2">Equipo que recibiste en parte de pago</p>
+                <label className="text-sm font-semibold">
+                  Qué equipo
+                  <input name="tradeDesc" maxLength={200} placeholder="Ej.: iPhone 15 Pro Max 256 GB" className={big} />
+                </label>
+                <label className="text-sm font-semibold">
+                  En cuánto lo tomaste
+                  <AmountInput key={`trade-${requestId}`} name="tradeValue" currency={opCurrency} />
+                </label>
+                <p className="text-xs text-muted sm:col-span-2">
+                  Poné el precio completo de la venta. El equipo cuenta como parte del pago y queda en tu lista de canjes: cuando lo vendas, elegilo arriba y el
+                  costo se completa solo.
+                </p>
+                <button type="button" className="text-left text-xs font-semibold text-muted underline sm:col-span-2" onClick={() => setReceivingTrade(false)}>
+                  Quitar el equipo
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setReceivingTrade(true)} className="text-left text-sm font-semibold text-accent sm:col-span-2">
+                + Recibí un equipo en parte de pago (plan canje)
+              </button>
+            )}
           </div>
         )}
 

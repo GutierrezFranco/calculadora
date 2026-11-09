@@ -147,8 +147,46 @@ aisladas por negocio y cuenta de origen, sin crear consultas a partir de mensaje
 El conector de `GutierrezFranco/ejemplo` se evaluará después; no implementarlo ahora.
 
 IA, lectura WhatsApp y Meta quedan después de esta prioridad.
+
+**Pospuesto para mucho más adelante** (decisión del propietario, 05/11/2026, a partir de la
+llamada con un alumno del 04/11). No implementar hasta un pedido explícito:
+
+- Atribución automática por WhatsApp: detectar el mensaje predeterminado que llega desde
+  Instagram («Quiero info sobre comprar, canjear o reparar») o usar un número exclusivo
+  para el link del perfil.
+- Análisis con IA de chats exportados de clientes que compraron, para obtener ángulos de contenido.
+- Calendario/biblioteca de contenido semanal (referencias, guion, «marcar como subido»).
 El roadmap formativo de MDM es un proyecto paralelo; no implementarlo aquí.
 Stock, contabilidad integral, caja, sucursales y empleados no integran este alcance.
+
+### 3.7. Pedidos surgidos del uso real (04/11/2026) — V1.6
+
+Rama `claude/pedidos-uso-real`. Migraciones aditivas `20261105000000_v16_pedidos_uso_real.sql` y
+`20261105010000_v16_plan_canje.sql`, aplicadas en producción el 09/11/2026 (ver §7).
+
+| # | Pedido | Estado |
+|---|---|---|
+| 1 | Moneda por operación (ARS/USD) | ✅ Carga simple con «Pesos / Dólares»; se recuerda por tipo (reparación/venta) en el navegador. Publicidad en US$ con la cotización del negocio guardada en el mes. El reporte convierte con la cotización de cada registro; sin cotización no mezcla y avisa. |
+| 2 | Embudos nuevos sin recargar | ✅ `RefreshOnFocus` en Cargar y Publicidad: al volver a la pestaña se pide la página otra vez. |
+| 3 | Montos con punto | ✅ `parseAmountText` ya aceptaba «70.200»; ahora cada monto muestra debajo «= $ 70.200» (`AmountInput`). |
+| 4 | Consultas vacías ≠ 0 | ✅ Ya en V1.5; texto de ayuda agregado. |
+| 5 | Origen «Conocido» | ✅ Ya en V1.5 («Conocido / recomendado»). |
+| 6 | Plan canje | ✅ Aprobado e implementado (migración `20261105010000_v16_plan_canje.sql`): ver abajo. |
+| 7 | Embudos no rastreables | ✅ Tráfico al perfil, Instagram y TikTok orgánico: sin costo por cliente, etiqueta «Estimado» y explicación. |
+| 8 | Costo por seguidor y hook rate | ✅ Campos opcionales en Publicidad (embudos de anuncios) y en el reporte. |
+| 9 | +1 conversación | ✅ Botones −/+1 en las consultas de cada embudo en Publicidad (`sumar_consulta_embudo`, nunca baja de 0). |
+
+Pruebas: `src/domain/funnel-profit.test.ts`, `tests/db/v16.test.sql`, `tests/db/v16b.test.sql`, `tests/e2e/v16.mjs`
+(390 px) y `tests/e2e/carga-simple.mjs` actualizado.
+
+**Plan canje (aprobado por el propietario el 05/11/2026 e implementado).** En una venta, opción «Recibí un equipo en parte de pago»
+con descripción y valor tomado, en la misma moneda. La venta conserva su precio completo; el valor del
+equipo se registra como cobro en especie (no como efectivo), así el saldo y lo cobrado son reales. El equipo
+queda como «equipo de canje sin vender», con su valor tomado como costo. Al venderlo se elige de esa lista y
+el costo se completa solo; su ganancia es precio − valor tomado. No es un módulo de stock: solo la lista de
+equipos recibidos en canje y todavía no vendidos. Implementación: tabla `trade_ins` (solo lectura para el
+usuario), `registrar_canje` (cobro `method = 'canje'`, no supera el precio) y `vender_canje` (costo = valor
+tomado, misma moneda, una sola vez). Una venta cancelada deja de ofrecer su canje.
 
 ## 4. Limitaciones conocidas — estado después de la primera etapa
 
@@ -214,3 +252,11 @@ Antes de esta aplicación el registro remoto estaba vacío aunque V1.3 ya exist�
 No volver a ejecutar esta migración ni usar `db push` indiscriminadamente:
 el historial remoto y los nombres locales requieren conciliación previa.
 No se repararon ni marcaron versiones anteriores en esta sesión.
+
+Aplicadas `v16_pedidos_uso_real` y `v16_plan_canje` el 09/11/2026 en `mdm-os` (ref `ddjdtoprftxvasajyfzn`),
+con autorización explícita del propietario, mediante la API de administración de Supabase (token de acceso
+temporal guardado como secreto del entorno «MDM OS», nunca en el repositorio). Antes: V1.5 presente, V1.6
+ausente. Después: 4 columnas nuevas en `funnel_months`, `trade_ins` con RLS, 3 funciones; 4 negocios y
+18 operaciones intactos. Registradas en `supabase_migrations.schema_migrations` como `20261105000000`
+y `20261105010000`. Las versiones anteriores a V1.4 siguen sin registrar: no usar `db push`.
+

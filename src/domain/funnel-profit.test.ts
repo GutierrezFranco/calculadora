@@ -78,3 +78,61 @@ describe("rentabilidad por embudo", () => {
     expect(r.total.billed).toBe(0);
   });
 });
+
+describe("V1.6: dólares, embudos estimados y métricas del anuncio", () => {
+  it("convierte ventas y publicidad en dólares con la cotización guardada en cada registro", () => {
+    const r = computeFunnelProfit({
+      funnels,
+      currency: "ARS",
+      usdRate: 1_500,
+      months: [{ funnelId: "wsp", spend: 2_200, currency: "USD", usdRate: 1_560, inquiries: 24 }], // US$ 22
+      operations: [
+        op({ funnelId: "wsp", amount: 68_000, cost: 50_000, collected: 68_000, currency: "USD", usdRate: 1_500 }), // US$ 680
+        op({ funnelId: "wsp", contactId: "c2", amount: 3_000_000, cost: 1_000_000, collected: 3_000_000 }),
+      ],
+    });
+    const wsp = r.rows.find((x) => x.funnelId === "wsp")!;
+    expect(wsp.spend).toBe(3_432_000);
+    expect(wsp.billed).toBe(102_000_000 + 3_000_000);
+    expect(wsp.cost).toBe(75_000_000 + 1_000_000);
+    expect(r.converted).toBe(4);
+    expect(r.otherCurrency).toBe(0);
+  });
+
+  it("sin cotización no mezcla monedas: lo informa aparte", () => {
+    const r = computeFunnelProfit({
+      funnels,
+      currency: "ARS",
+      months: [{ funnelId: "wsp", spend: 2_200, currency: "USD", inquiries: 5 }],
+      operations: [op({ currency: "USD" })],
+    });
+    expect(r.otherCurrency).toBe(2);
+    expect(r.total.billed).toBe(0);
+  });
+
+  it("en embudos no rastreables no da costo por cliente, pero sí la rentabilidad del mes", () => {
+    const r = computeFunnelProfit({
+      funnels: [{ id: "perfil", name: "Tráfico al perfil", paid: true, traceable: false }],
+      currency: "ARS",
+      months: [{ funnelId: "perfil", spend: 7_020_000, inquiries: 7 }],
+      operations: [op({})],
+    });
+    const perfil = r.rows[0];
+    expect(perfil.traceable).toBe(false);
+    expect(perfil.costPerClient).toBeNull();
+    expect(perfil.costPerInquiry).toBeCloseTo(1_002_857.14, 1);
+    expect(perfil.roi).not.toBeNull();
+  });
+
+  it("calcula costo por seguidor y hook rate con los datos opcionales del anuncio", () => {
+    const r = computeFunnelProfit({
+      funnels,
+      currency: "ARS",
+      months: [{ funnelId: "perfil", spend: 6_000_000, inquiries: null, followers: 40, plays3s: 520, impressions: 1_000 }],
+      operations: [],
+    });
+    const perfil = r.rows.find((x) => x.funnelId === "perfil")!;
+    expect(perfil.costPerFollower).toBe(150_000);
+    expect(perfil.hookRate).toBe(0.52);
+  });
+});
